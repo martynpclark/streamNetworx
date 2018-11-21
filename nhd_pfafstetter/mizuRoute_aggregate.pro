@@ -17,8 +17,8 @@ shp_path = shp_root + 'nhdPlus_SHPs_class/'
 
 ; Define shapefiles
 nhdFiles = [$
-            ['MS','10U'], $
             ['SA','03N'], $
+            ['MS','10U'], $
             ['PN','17' ], $
             ['CO','14' ], $
             ['GB','16' ], $
@@ -256,6 +256,8 @@ pClass_seg = strarr(nSeg)
 pCode_seg[ sort(segId_mizu)] = strtrim(pCode_flowline[ sort(segId_pfaf)], 2)
 pClass_seg[sort(segId_mizu)] = strtrim(pClass_flowline[sort(segId_pfaf)], 2)
 
+;stop, 'test'
+
 ; *****
 ; * AGGREGATE THE MIZUROUTE NETWORK TOPOLOGY FILE...
 ; **************************************************
@@ -276,10 +278,6 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
   ; define the original shapefile
   shpFile_orig = shp_path + shpType[iType] + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '.shp'
   print, shpFile_orig
-
-  ; define the aggregated shapefile
-  if(shpType[iType] eq 'Catchment_')then hruShpFile_agg = shp_root + 'nhdPlus_SHPs_aggregate/' + shpType[iType] + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.shp'
-  if(shpType[iType] eq 'Flowline_')then  segShpFile_agg = shp_root + 'nhdPlus_SHPs_aggregate/' + shpType[iType] + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.shp'
 
   ; get the feature ID
   if(shpType[iType] eq 'Catchment_')then get_attributes, shpFile_orig, 'FEATUREID', hruId_sh
@@ -306,7 +304,16 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
    restore, matchName
   endelse
 
+  ; define the aggregated shapefile
+  if(shpType[iType] eq 'Catchment_')then hruShpFile_agg = shp_root + 'nhdPlus_SHPs_aggregate/' + shpType[iType] + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.shp'
+  if(shpType[iType] eq 'Flowline_')then  segShpFile_agg = shp_root + 'nhdPlus_SHPs_aggregate/' + shpType[iType] + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.shp'
+
  endfor  ; looping through shapefile types
+
+ ; define shapefiles
+ varNames = ['idFeature']
+ defineShapefile, typeCatch,  varNames, hruShpFile_agg
+ defineShapefile, typeStream, varNames, segShpFile_agg
 
  ; get a subset of mapping indices
  nSubset   = n_elements(hruId_mizu_ix)
@@ -364,7 +371,7 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
   
     ; define starting Pfafstetter code
     prefix  = strtrim(iRegion,2) + strtrim(iPfaf1,2) + strtrim(iPfaf2,2)
-    ;prefix   = '968'
+    ;prefix   = '753'
   
     ; get regional subsets (reduce computational time for searching)
     ixClass_cat = where(classString_cat eq prefix, nClass_cat)
@@ -384,6 +391,9 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
      ; define the unique id
      idUnique = uniqVec[ixUniq[iUniq]]
  
+     ; debug
+     ;if(idUnique ne '753793')then continue
+
      ;print, '*****'
      ;print, '*****'
      ;print, '*****'
@@ -412,81 +422,63 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
      endif
 
      ; *****
+     ; * IDENTIFY THE ID OF THE LARGEST OUTLET...
+     ; ******************************************
+
+     ; initialize     
+     iyOutlet = iyStream
+     idOutlet = idUnique
+     ixSubset = indgen(nStream) 
+     ixOutlet = where(downSegIndex_mizu[iyStream] lt 0, nOutlet)
+
+     ; trim until one outlet
+     while(nOutlet gt 1)do begin
+      area_max = max(totalArea_mizu[iyStream[ixOutlet]], jMaxOutlet)
+      idOutlet = strmid(pCode_flowline[iyStream[ixOutlet[jMaxOutlet]]],0,strlen(idUnique)+1)
+      ixSubset = where(strmid(pCode_flowline[iyStream],0,strlen(idOutlet)) eq idOutlet, nSubset)
+      if(nSubset eq 0)then stop, 'expect valid reaches since outlet exists'
+      ixOutlet = where(downSegIndex_mizu[iyStream[ixSubset]] lt 0, nOutlet)
+      iyOutlet = iyStream[ixSubset]
+     endwhile
+
+     ; *****
      ; * DEFINE AGGREGATED RIVER NETWORK...
      ; ************************************
 
      ; identify the main stem
-     get_mainStem, idUnique, codeVec_seg[ixClass_seg[ixStream]], isMainStem
+     get_mainStem, idOutlet, pCode_flowline[iyOutlet], isMainStem
      ixMainstem = where(isMainstem eq 1, nMainstem)
      if(nMainstem gt 0)then begin
 
       ; get subset of stream segments that are on the main stem
-      izSubset   = ixClass_seg[ixStream[ixMainstem]] 
+      izSubset   = ixClass_seg[ixStream[ixSubset[ixMainstem]]] 
       iyMainstem = segId_mizu_ix[izSubset]  ; index in mizuRoute NetCDF file
       izMainstem = segID_sh_ix[izSubset]    ; index in shape file
       ;print, 'Pfafstetter main stem = ', pCode_seg[iyMainstem]
 
-      ; check that we do not have multiple dangling reaches on the main stem
-      ixOutlet   = where(downSegIndex_mizu[iyMainstem] lt 0, nOutlet)
-      isDrainage = (max(totalArea_mizu[iyMainstem]) gt 0.1d)
-      ;print, 'nOutlet    = ', nOutlet
-      ;print, 'ixOutlet   = ', ixOutlet
-      ;print, 'isDrainage = ', isDrainage
-
       ; check that there are meaningful areas for multiple drainages
+      isDrainage = (max(totalArea_mizu[iyMainstem]) gt 0.1d)
       if(isDrainage eq 1)then begin
-       if(nOutlet gt 1)then begin
 
-        ; find the outlet with the largest area
-        iyOutlet = iyMainstem[ixOutlet]
-        areaMax  = max(totalArea_mizu[iyOutlet], ixMax)
-        ;print, 'area = ', totalArea_mizu[iyOutlet]
-        ;print, 'pfaf = ', pCode_seg[iyOutlet]
+       ; identify the index of the basin with largest area (iyMax) as well as the index of the downstream basin (iyDown)
+       get_downstream, iyMainstem, totalArea_mizu, pClass_seg, downSegIndex_mizu, iyMax, iyDown
 
-        ; get the subset of IDs for the basin with the largest area
-        ixSubset = ixClass_seg[ixStream[ixMainstem]]
-        desireId = strmid(pCode_seg[iyOutlet[ixMax]], 0, strlen(idUnique)+1)
-        iySubset = where(strmid(pCode_seg[segId_mizu_ix[ixSubset]],0,strlen(idUnique)+1) eq desireId)
-        ;print, 'pfaf1 = ', pCode_seg[segId_mizu_ix[ixSubset]]
-        ;print, 'pfaf2 = ', pCode_seg[segId_mizu_ix[ixSubset[iySubset]]]
+       ; check if the reaches drain through the bottom basin
+       check_downstream, iyMax, downSegIndex_mizu, iyMainstem, isDownstream
+       ;print, 'isDownstream = ', isDownstream         
 
-        ; identify the main stem
-        get_mainStem, desireId, codeVec_seg[ixSubset[iySubset]], isMainStem
-        ixMainstem = where(isMainstem eq 1, nMainstem)
-        if(nMainstem eq 0)then stop, 'expect one main stem when there are multiple outlets'
+       ; identify the main stem again
+       ixxMainstem = where(isDownstream eq 1, nMainstem)
+       if(nMainstem eq 0)then stop, 'expect one main stem for the largest outlet'
 
-        ; get subset of stream segments that are on the main stem
-        izSubset   = ixSubset[iySubset[ixMainstem]]
-        iyMainstem = segId_mizu_ix[izSubset]  ; index in mizuRoute NetCDF file
-        izMainstem = segID_sh_ix[izSubset]    ; index in shape file
-        ;print, 'dissolving multiple main stem elements = ', pCode_seg[iyMainstem]
-
-       endif ; special case of multiple outlets
-
-       ; identify the elements connected to the reach with the largest area 
-       if(nMainstem gt 0)then begin
-
-        ; identify the index of the basin with largest area (iyMax) as well as the index of the downstream basin (iyDown)
-        get_downstream, iyMainstem, totalArea_mizu, pClass_seg, downSegIndex_mizu, iyMax, iyDown
-
-        ; check if the reaches drain through the bottom basin
-        check_downstream, iyMax, downSegIndex_mizu, iyMainstem, isDownstream
-        ;print, 'isDownstream = ', isDownstream         
-
-        ; identify the main stem again
-        ixMainstem = where(isDownstream eq 1, nMainstem)
-        if(nMainstem eq 0)then stop, 'expect one main stem for the largest outlet'
-
-        ; get subset of stream segments that are on the main stem
-        izSubset   = izSubset[ixMainstem]
-        iyMainstem = segId_mizu_ix[izSubset]  ; index in mizuRoute NetCDF file
-        izMainstem = segID_sh_ix[izSubset]    ; index in shape file
-        ;print, 'restrict attention to the biggest main stem = ', pCode_seg[iyMainstem]
-
-       endif  ; if more than one element on the main stem
+       ; get subset of stream segments that are on the main stem
+       izzSubset   = izSubset[ixxMainstem]
+       iyyMainstem = segId_mizu_ix[izzSubset]  ; index in mizuRoute NetCDF file
+       izzMainstem = segID_sh_ix[izzSubset]    ; index in shape file
+       ;print, 'restrict attention to basins draining largest area = ', pCode_seg[iyyMainstem]
 
        ; update the stream segment shapefile
-       aggregateShapefile, typeStream, ixIndex_seg, long64(idUnique), segShpFile_agg, seg_shapes, izMainstem
+       aggregateShapefile, typeStream, ixIndex_seg, varNames, [long64(idUnique)], segShpFile_agg, seg_shapes, izzMainstem
 
       ; isDrainage=0
       endif else begin
@@ -509,12 +501,13 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
      if(nMainstem gt 0)then begin
 
       ; get indices of stream segments that flow through the outlet
-      check_downstream, iyMax, downSegIndex_mizu, iyStream, isNetwork
+      check_downstream, iyMax, downSegIndex_mizu, iyOutlet, isNetwork
       ixDrain = where(isNetwork eq 1, nDrain)
       if(nDrain eq 0)then stop, 'expect some stream segments flow to the outlet when there is a mainstem'
+      iyDrain = ixSubset[ixDrain]
 
       ; get indices of catchments connected to the stream network
-      izDrain  = segId_mizu_ix[ixClass_seg[ixStream[ixDrain]]]  ; segId index in the mizuroute vector
+      izDrain  = segId_mizu_ix[ixClass_seg[ixStream[iyDrain]]]  ; segId index in the mizuroute vector
       ixRunoff = ixSeg2hru[izDrain]                             ; hru index in mizuroute vector
       ixMatch  = where(ixRunoff ge 0, nRunoff)                  ; some stream segments do not have an associated catchment
       if(nRunoff eq 0)then stop, 'expect some catchments flow to the outlet'
@@ -525,7 +518,8 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
       ;print, 'ixIndex_cat = ', ixIndex_cat
 
       ; define catchments that flow to the main stem
-      aggregateShapefile, typeCatch,  ixIndex_cat, long64(idUnique), hruShpFile_agg, hru_shapes, hruID_sh_ix[izCatch]
+      aggregateShapefile, typeCatch, ixIndex_cat, varNames, [long64(idUnique)], hruShpFile_agg, hru_shapes, hruID_sh_ix[izCatch] 
+      ;print, 'pfafCode network = ', pCode_catchment[hruID_mizu_ix[izCatch]]
 
       ; save the indices that flow to the main stem
       izMainflow = hruId_mizu_ix[izCatch]
@@ -536,7 +530,8 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
       ; define catchments that ***DO NOT*** flow to the main stem
       nRunoff = 0
       izCatch = ixClass_cat[ixCatch]
-      aggregateShapefile, typeCatch,  ixIndex_cat, long64(idUnique+'01'), hruShpFile_agg, hru_shapes, hruID_sh_ix[izCatch]
+      aggregateShapefile, typeCatch, ixIndex_cat, varNames, [long64(idUnique+'01')], hruShpFile_agg, hru_shapes, hruID_sh_ix[izCatch] 
+      ;print, 'pfafCode no flow = ', pCode_catchment[hruID_mizu_ix[izCatch]]
 
       ; save the indices that flow nowhere
       izNowhere = hruId_mizu_ix[izCatch]
@@ -553,16 +548,21 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
       ixIndex_cat = ixIndex_cat+1
       isItSpecial = 1
 
-      ; define vector of catchments that is not routed
-      isRouted = replicate(0, nCatch)
-      izSeg2hru[izCatch] = lindgen(nRunoff)
-      isRouted[izSeg2hru[izCatch]] = 1
+      ;print, 'pfafCode network = ', pCode_catchment[hruID_mizu_ix[izCatch]]
+
+      ; define if catchments are routed
+      izSeg2hru[ixClass_cat[ixCatch]] = 0 ; initialize catchments as zero
+      izSeg2hru[izCatch]              = 1 ; catchments that drain
+      isRouted = izSeg2hru[ixClass_cat[ixCatch]]
+
+      ; define indices of catchments that are NOT routed
       ixNoFlow = where(isRouted eq 0, nNoFlow)
       if(nNoFlow eq 0)then stop, 'expect some catchments do NOT drain to the river network'
 
       ; define catchments that ***DO NOT*** flow to the main stem
       izCatch = ixClass_cat[ixCatch[ixNoFlow]]
-      aggregateShapefile, typeCatch,  ixIndex_cat, long64(idUnique+'01'), hruShpFile_agg, hru_shapes, hruID_sh_ix[izCatch]
+      aggregateShapefile, typeCatch, ixIndex_cat, varNames, [long64(idUnique+'01')], hruShpFile_agg, hru_shapes, hruID_sh_ix[izCatch] 
+      ;print, 'pfafCode no flow = ', pCode_catchment[hruID_mizu_ix[izCatch]]
 
       ; save the indices that flow nowhere
       izNowhere = hruId_mizu_ix[izCatch]
@@ -759,6 +759,10 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
       if(iLook_type[iType] eq isItMainflow)then ixIndex_seg = ixIndex_seg+1  
 
      endfor  ; looping through file types
+
+     ; debug
+     ;if(idUnique eq '753793')then stop, 'debugging'
+
     endfor  ; looping through unique ids
   
    endfor  ; ipfaf2

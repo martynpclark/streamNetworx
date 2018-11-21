@@ -24,6 +24,10 @@ for iStream=0,nStream-1 do begin
   if(total(byte(strVec) mod 2, /integer) eq sLength)then isMainstem[iStream] = 1
  endelse
 
+ ;if(strVec[0] eq '7')then print, codeVec[iStream], ' : ', idUnique, isMainstem[iStream]
+ ;print, codeVec[iStream], ' : ', idUnique, isMainstem[iStream]
+ 
+
 endfor  ; looping through streams
 
 end

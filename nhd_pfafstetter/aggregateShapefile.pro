@@ -1,23 +1,38 @@
-pro aggregateShapefile, entityType, ixIndex, idUnique, shp_file, shapes, indexShapes
+pro aggregateShapefile, entityType, ixIndex, layerNames, intVec, shp_file, shapes, indexShapes
 
 ; entityType=3 is a polyLine
 ; entityType=5 is a polygon
 
+; define maximum attributes
+
 ; create shapefile
-if(ixIndex eq 0)then begin
- mynewshape = OBJ_NEW('IDLffShape', shp_file, /update, entity_type=entityType)
-endif else begin
- mynewshape = OBJ_NEW('IDLffShape', shp_file, /update)
-endelse
+mynewshape = OBJ_NEW('IDLffShape', shp_file, /update)
 entNew = {IDL_SHAPE_ENTITY}
 
 ; define entity type
 entNew.shape_type = entityType
 
-; define attributes
+; get the number of attributes
 mynewshape->GetProperty, N_ATTRIBUTES=nAttributes
-if(nAttributes eq 0)then mynewshape->AddAttribute, 'pfafUnique', 3, 10
+mynewshape->GetProperty, ATTRIBUTE_NAMES=attr_names
+if(n_elements(layerNames) ne nAttributes)then stop, 'unexpected attributes exist in file ' + shp_file
+
+; get attributes
 attrNew = mynewshape->GetAttributes(/ATTRIBUTE_STRUCTURE)
+
+; set attributes 
+for iAtt=0,nAttributes-1 do begin
+ ixMatch = where(strmatch(strtrim(attr_names,2), strtrim(layerNames[iAtt],2)) eq 1, nMatch)
+ if(nMatch ne 1)then stop, 'expect a unique match'
+ attrNew.(ixMatch[0]) = intVec[ixMatch[0]]
+endfor
+
+; add the attribute to the shapefile
+mynewshape->SetAttributes, ixIndex, attrNew
+
+; =====================================================================================
+; =====================================================================================
+; =====================================================================================
 
 ; get the number of elements to aggregate
 nSubset = n_elements(indexShapes)
@@ -74,20 +89,15 @@ entNew.vertices   = ptr_new(transpose([ [xVec] , [yVec] ]), /No_Copy)
 entNew.n_parts = n_elements(parts)
 entNew.parts   = ptr_new(parts, /No_Copy)
 
-; set attribute
-attrNew.ATTRIBUTE_0 = idUnique
-
 ; add the new entity to new shapefile.
 mynewshape->PutEntity, entNew
 
-; add the attribute to the shapefile
-mynewshape->SetAttributes, ixIndex, attrNew
+; =====================================================================================
+; =====================================================================================
+; =====================================================================================
 
 ; close the shapefile
 mynewshape->Close
 OBJ_DESTROY, mynewshape
 
-; add projection info
-if(ixIndex eq 0)then spawn, 'ogr2ogr -a_srs EPSG:4326 ' + shp_file + ' ' + shp_file
-  
 end
