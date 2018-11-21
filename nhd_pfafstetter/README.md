@@ -154,3 +154,17 @@ Initial IDL code for Pfafstetter numbering
 - nhdPlus_SHPs_aggregate/*                 -- aggregated shapefiles
 - network*-agg.nc                          -- aggregated network topology file (needed to run mizuRoute)
 - spatialWeights*-agg.nc                   -- aggregated spatial weights file (needed to run mizuRoute)
+--------------------------------------------------------------------------------------------------------
+10. Provide a spatial decomposition of large domains
+
+** Source code 
+- spatial_decompose.pro
+- parallel_cdf.pro
+
+** Inputs
+- NHDPlus2_updated-CONUS.nc                -- mizuRoute network topology file
+- conusPfafstetter_aggregate.nc            -- Pfafstetter codes for all dangling reaches in the CONUS
+- nhdPlus_SHPs_class/*                     -- directory containing shapefiles with the Pfafstetter classification
+
+** Outputs
+- nhdPlus_SHPs_aggregate/*                 -- decomposed shapefiles
