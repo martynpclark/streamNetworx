@@ -88,7 +88,7 @@ ncdf_close, nc_file
 
 ; define IDL save file
 coastalSave_conus =  savePath + 'coastalSave_conus.sav'
-spawn, 'rm ' + coastalSave_conus
+;spawn, 'rm ' + coastalSave_conus
 
 ; check if the save file exists
 if(file_test(coastalSave_conus) eq 0)then begin
