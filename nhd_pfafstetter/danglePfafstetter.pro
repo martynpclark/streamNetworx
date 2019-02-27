@@ -11,7 +11,6 @@ pro danglePfafstetter, iLevel, jDangle, pCode, segId_mizu, upSeg_count, upsReach
 ;  upSeg_count    (int vec)   : number of reaches upstream of each reach
 ;  upsReach       (structure) : indices of upstream reaches
 ;  totalArea_mizu (real vec)  : upstream area above each reach
-;  ixAssign       (int vec)   : flag defining if reach is assigned
 
 ; output:
 ;  mainStem       (int array) : pfafstetter code for each level
@@ -39,6 +38,7 @@ segMax = -9999
 ; initialize with the main stem above the dangling reach
 crawlUpstream, segMin, segMax, pCode[iLevel], upSeg_count, upsReach, totalArea_mizu, ixAssign, $  ; input
                ixSubset, ixMainstem                                                               ; output
+
 ; define the subset
 ixSubset0 = ixSubset 
 numSubset = n_elements(ixSubset)
@@ -53,6 +53,10 @@ if(iLevel eq 0)then begin
 endif else begin
  mainStem[0:iLevel,ixSubset] = [rebin(pCode[0:iLevel-1], ilevel, numSubset), transpose(ixMainstem[ixSubset])]
 endelse
+
+;print, 'iLevel = ', iLevel
+;print, 'before get_pfafsCode'
+;print, 'ixMainstem[ixSubset] = ', ixMainstem[ixSubset]
 
 ; identify the subset processed
 ixAssign[ixSubset] = 1
@@ -73,7 +77,10 @@ ixSubset = ixSubset0[ixTemp]
 
 ; get Pfafstetter code for a given level
 get_pfafsCode, pfafVec, segId_mizu, upSeg_count, upsReach, totalArea_mizu, ixAssign, ixSubset, $  ; input
-               networkSubset, ixMainstem, nTrib                                                    ; output
+               networkSubset, ixMainstem, nTrib                                                   ; output
+
+;print, 'after get_pfafsCode'
+;print, 'ixMainstem[ixSubset] = ', ixMainstem[ixSubset]
 
 ; save the subset
 ixSubset1 = networkSubset

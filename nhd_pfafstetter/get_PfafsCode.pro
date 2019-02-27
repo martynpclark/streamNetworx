@@ -65,8 +65,14 @@ ixSort = reverse( sort(aTributary[ixTrib]) )
 ixJunc = ixTrib[ixSort[0:nTrib-1]]
 if keyword_set(iPrint) then print, 'aTributary = ', aTributary[ixTrib[ixSort]]
 
-; sort junctions w.r.t. upstream area
-iySort = reverse( sort(totalArea_mizu[mainSubset[ixJunc]]) )
+; sort junctions
+if(stddev(totalArea_mizu[mainSubset]) gt 1.d)then begin
+ iySort = reverse( sort(totalArea_mizu[mainSubset[ixJunc]]) )  ; sort by area
+endif else begin
+ iySort = sort(ixJunc)  ; sort by index
+endelse
+
+; get indices of junctions
 iyJunc = mainSubset[ixJunc[iySort]]
 
 ; print
@@ -75,7 +81,8 @@ if keyword_set(iPrint) then begin
  print, 'nTrib     = ', nTrib
  print, 'trib Area = ', aTributary[ixJunc]
  print, 'stem Area = ', totalArea_mizu[iyJunc]
- print, 'indices   = ', iyJunc
+ print, 'ixJunc    = ', ixJunc
+ print, 'iyJunc    = ', iyJunc
  print, 'segMin    = ', segSave
  print, 'segMax    = ', segMax
 endif

@@ -41,7 +41,7 @@ while (upSeg_count[iSeg] gt 0) do begin
 
  ; save the indices of the subset
  ixSubset[nSubset-1] = iSeg
- ;print, 'iSeg, iTarget, area[iSeg] = ', iSeg, iTarget, totalArea_mizu[iSeg]
+ ;print, 'iSeg, iTarget, area[iSeg], iPfaf = ', iSeg, iTarget, totalArea_mizu[iSeg], iPfaf
 
  ; identify the mainstem
  ixMainstem[iSeg] = iPfaf
@@ -49,10 +49,12 @@ while (upSeg_count[iSeg] gt 0) do begin
  ; get the upstream indices
  ixUps = (*(upsReach[iSeg])).upSegIndices
  ;print, 'upstream indices = ', (*(upsReach[iSeg])).upSegIndices
+ ;print, 'upstream ids = ',     (*(upsReach[iSeg])).upSegIds
  ;print, 'upSeg_count = ', upSeg_count[iSeg]
  
  ; get the upstream area
  uArea = totalArea_mizu[ixUps]
+ ;print, 'uArea = ', uArea
 
  ; modify the upstream area if there are zero-area tributaries
  ixZero = where(uArea lt verySmall, nZero, complement=nonZero, ncomplement=nValid)
@@ -82,15 +84,16 @@ while (upSeg_count[iSeg] gt 0) do begin
     endfor
    endif  ; if >2 tributaries
 
-   ;if(upSeg_count[iSeg] gt 2)then begin
-    ;print, '          nSubset-1 = ', nSubset-1
-    ;print, '          iSeg  = ', iSeg
-    ;print, '          uArea = ', uArea
-    ;print, '          upd ids = ', (*(upsReach[iSeg])).upSegIds
-    ;print, '          upd ixs = ', (*(upsReach[iSeg])).upSegIndices
-    ;print, '          ixAssign = ', ixAssign[ixUps] 
-    ;print, '          aTributary[nSubset-1] = ', aTributary[nSubset-1]
-   ;endif
+   ; test
+   ;     if(upSeg_count[iSeg] gt 2)then begin
+   ;      print, '          nSubset-1 = ', nSubset-1
+   ;      print, '          iSeg  = ', iSeg
+   ;      print, '          uArea = ', uArea
+   ;      print, '          upd ids = ', (*(upsReach[iSeg])).upSegIds
+   ;      print, '          upd ixs = ', (*(upsReach[iSeg])).upSegIndices
+   ;      print, '          ixAssign = ', ixAssign[ixUps] 
+   ;      print, '          aTributary[nSubset-1] = ', aTributary[nSubset-1]
+   ;     endif
 
   endif
  endif
@@ -106,6 +109,7 @@ while (upSeg_count[iSeg] gt 0) do begin
 endwhile  ; crawling upstream
 
 ;print, 'iSeg = ', iSeg
+;if(keyword_set(aTributary))then print, 'aTributary = ', aTributary
 
 ; save the last subset
 if(nSubset eq 0 or ixSubset[nSubset-1] ne iSeg)then begin
