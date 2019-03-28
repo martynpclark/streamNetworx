@@ -2,8 +2,8 @@
 # PROCESS FOR DEFINING PFAFSTETTER CODES
 
 ## Revised IDL code for
-## A) Pfafstetter numbering; and
-## B) Basin aggregation
+### A) Pfafstetter numbering; and
+### B) Basin aggregation
 
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
