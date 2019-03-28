@@ -1,7 +1,7 @@
 
-PROCESS FOR DEFINING PFAFSTETTER CODES
+# PROCESS FOR DEFINING PFAFSTETTER CODES
 
-Revised IDL code for Pfafstetter numbering and basin aggregation
+# Revised IDL code for Pfafstetter numbering and basin aggregation
 
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 - `nhdPlus_SHPs_HDMA-HUC12/[subregion].shp` -- "most overlapping" HDMA/HUC polygon in each NHD+ polygons
 
 --------------------------------------------------------------------------------------------------------
-## Identify Pfafstetter codes for the coastline
+## 1. Identify Pfafstetter codes for the coastline
 
 ### *Source code*
 - `coastPfafstetter.pro`                      -- identify Pfafstetter codes for the coastline (including the Great Lakes)
@@ -65,7 +65,7 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 - `conusCoast_pfaf-all.shp`                  -- Pfafstetter all levels
 
 --------------------------------------------------------------------------------------------------------
-## Assign Pfafstetter codes for basins that reach the coast
+## 2. Assign Pfafstetter codes for basins that reach the coast
 
 ### *Source code*
 - assignCoastDangle.pro                      -- compute pfafstetter indices for dangling reaches at the coast 
@@ -79,54 +79,54 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 - `Flowline`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## Assign Pfafstetter codes for basins that DO NOT reach the coast
+## 3. Assign Pfafstetter codes for basins that DO NOT reach the coast
 
 ### *Source code*
-- `assignOtherDangle.pro`                    -- compute pfafstetter indices for dangling reaches that do not reach the coast
+- `assignOtherDangle.pro`                      -- compute pfafstetter indices for dangling reaches that do not reach the coast
 
 ### *Inputs*
-- `NHDPlus2_updated-CONUS.nc`                -- mizuRoute network topology file
-- `nhdPlus_final/Flowline_[subregion].shp`   -- merged oCONUS NHD-Plus shapefiles
-- `conusCoast_pfaf-all.shp`                  -- Pfafstetter all levels for dangling reaches at the coast
+- `NHDPlus2_updated-CONUS.nc`                  -- mizuRoute network topology file
+- `nhdPlus_final/Flowline`_*subregion*`.shp`   -- merged oCONUS NHD-Plus shapefiles
+- `conusCoast_pfaf-all.shp`                    -- Pfafstetter all levels for dangling reaches at the coast
 
 ### *Outputs* (shapefiles in `nhdPlus_SHPs_allDangle/`)
-- `Flowline_[subregion].shp`
+- `Flowline`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## Assign new Pfafsttter codes to duplicate reaches
+## 4. Assign new Pfafsttter codes to duplicate reaches
 
 ### *Source code*
 - `assignDuplicate.pro`                      -- assign new Pfafsttter codes to duplicate reaches
 
 ### *Inputs* (shapefiles in `nhdPlus_SHPs_allDangle/`)
-- `Flowline_[subregion].shp`
+- `Flowline`_*subregion*`.shp`
 
 ### *Outputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
-- `Flowline_[subregion].shp`
+- `Flowline`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## Assign Pfafstetter codes to basin
+## 5. Assign Pfafstetter codes to basin
 
 ### *Source code*
 - `assignBasins.pro`                         -- assign Pfafstetter codes to basins 
 
 ### *Inputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
-- `Flowline_{subregion}.shp`
+- `Flowline`_*subregion*`.shp`
 
 ### *Outputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
-- `Catchment_`[subregion]`.shp`
+- `Catchment`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## Build a NetCDF file 
+## 6. Build a NetCDF file 
 
 ### *Source code*
 - buildNetCDF.pro                            -- used to write Pfafsteter codes to NetCDF files
 
 ### *Inputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
-- `Flowline_[subregion].shp`
-- `Catchment_[subregion].shp`
+- `Flowline`_*subregion*`.shp`
+- `Catchment`_*subregion*`.shp`
 
-** Output
+### *Output*
 - `conusPfafstetter.nc`
 
 --------------------------------------------------------------------------------------------------------
