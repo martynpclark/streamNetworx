@@ -68,15 +68,15 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 ## Assign Pfafstetter codes for basins that reach the coast
 
 ### *Source code*
-- assignCoastDangle.pro                    -- compute pfafstetter indices for dangling reaches at the coast 
+- assignCoastDangle.pro                      -- compute pfafstetter indices for dangling reaches at the coast 
 
 ### *Inputs*
-- `NHDPlus2_updated-CONUS.nc`                 -- mizuRoute network topology file
-- `nhdPlus_final/Flowline` _**subregion** `.shp` -- merged oCONUS NHD-Plus shapefiles
-- `conusCoast_pfaf-all.shp`                   -- Pfafstetter all levels for dangling reaches at the coast
+- `NHDPlus2_updated-CONUS.nc`                -- mizuRoute network topology file
+- `nhdPlus_final/Flowline`_*subregion*`.shp` -- merged oCONUS NHD-Plus shapefiles
+- `conusCoast_pfaf-all.shp`                  -- Pfafstetter all levels for dangling reaches at the coast
 
 ### *Outputs* (shapefiles in `nhdPlus_SHPs_coastDangle/`)
-- `Flowline\_ _subregion_ .shp`
+- `Flowline`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
 ## Assign Pfafstetter codes for basins that DO NOT reach the coast
