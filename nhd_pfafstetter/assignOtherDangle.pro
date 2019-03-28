@@ -20,13 +20,11 @@ jShape=0
 
 ; Define shapefiles
 nhdFiles = [$
-            ['SR','09' ], $
-            ['PN','17' ], $
-            ['SA','03N'], $
-            ['MS','10U'], $
-            ['CO','14' ], $
-            ['GB','16' ], $
             ['CA','18' ], $
+            ['RG','13' ], $
+            ['GB','16' ], $
+            ['SR','09' ], $
+            ['SA','03N'], $
             ['NE','01' ], $
             ['MA','02' ], $
             ['SA','03W'], $
@@ -36,31 +34,35 @@ nhdFiles = [$
             ['MS','06' ], $
             ['MS','07' ], $
             ['MS','08' ], $
+            ['MS','10U'], $
             ['MS','10L'], $
             ['MS','11' ], $
-            ['TX','12' ], $
-            ['RG','13' ], $
+            ['CO','14' ], $
             ['CO','15' ], $
+            ['PN','17' ], $
+            ['TX','12' ], $
             ['MA','02' ]  ]
 
 ; get additional codes (1-level)
-pLev1 = indgen(4)*2+2
+pLev1 = indgen(9)+1
+nCode = n_elements(pLev1)
 
 ; get additional codes (2-level)
-pTemp = pLev1#replicate(1,4)
-pLev2 = reform(transpose(pTemp*100) + pTemp, 16)
+pTemp = pLev1#replicate(1,nCode)
+pLev2 = reform(transpose(pTemp*100) + pTemp, nCode*nCode)
 
 ; get additional codes (3-level)
-p100  = rebin(replicate(1,4)#pLev1, 4, 16, /sample)
-p010  = rebin(reform(rebin(pLev1, 4, 4, /sample), 1, 16), 4, 16, /sample)
-p001  = rebin(pLev1, 4, 16, /sample)
-pLev3 = reform(p100*10000L + p010*100L + p001, 4*16)
+p100  = rebin(replicate(1,nCode)#pLev1, nCode, nCode*nCode, /sample)
+p010  = rebin(reform(rebin(pLev1, nCode, nCode, /sample), 1, nCode*nCode), nCode, nCode*nCode, /sample)
+p001  = rebin(pLev1, nCode, nCode*nCode, /sample)
+pLev3 = reform(p100*10000L + p010*100L + p001, nCode*nCode*nCode)
 
 ; concatenate
-pSuffix = strtrim([pLev1, pLev2, pLev3],2)
+pSuffix = '00'+strtrim([pLev1, pLev2, pLev3],2)
 nSuffix = n_elements(pSuffix)
-print, pSuffix
-print, nSuffix
+;print, pSuffix
+;print, nSuffix
+;stop
 
 ; *****
 ; * READ THE NHD+ TOPOLOGY...
@@ -216,17 +218,24 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
  pfafCode_hru[feature_ix] = long64(pfafCode_seg[comID_sh_ix[segment_ix]])
 
  ; test
- iStart=0L
- for iSeg=iStart,iStart+10 do begin
-  if(ixSeg2hru[iSeg] ne -9999L)then print, 'test: id = ', ixSeg2hru[iSeg], comID_sh[comID_sh_ix[iSeg]], featId_sh[ixSeg2hru[iSeg]]
- endfor
+ ;iStart=0L
+ ;for iSeg=iStart,iStart+10 do begin
+ ; if(ixSeg2hru[iSeg] ne -9999L)then print, 'test: id = ', ixSeg2hru[iSeg], comID_sh[comID_sh_ix[iSeg]], featId_sh[ixSeg2hru[iSeg]]
+ ;endfor
+
+ ; =====================================================================================
+ ; =====================================================================================
+ ; =====================================================================================
+ ; =====================================================================================
+ ; =====================================================================================
+ ; =====================================================================================
 
  ; *****
  ; * IDENTIFY PFAFSTETTER CODES FOR DANGLING REACHES...
  ; ****************************************************
 
  ; define the maximum number of levels
- maxLevel = 19  ; cannot have numbers with more than 19 digits
+ maxLevel  = 19  ; cannot have numbers with more than 19 digits
 
  ; define the pfafstetter code
  mainStem = replicate(0L,  maxLevel,nSeg)
@@ -243,36 +252,34 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
  origCheck = strarr(nDangle)
  newCheck  = strarr(nDangle)
 
+ ; save the length of the Pfafstetter code
+ codeLength = intarr(nDangle)
+
  ; loop through dangling reaches
  for iDangle=0,nDangle-1 do begin
+
+  ; *****
+  ; * GET INITIAL INDICES...
+  ; ************************
 
   ; get indices to the shape file and the national database
   jDangle = ixDangle[ixSort[iDangle]]
   iShape  = comID_sh_ix[jDangle]
   iMizu   = segId_mizu_ix[jDangle]
 
+  ; avoid segments that are already processed
+  if(long64(pfafCode_seg[iShape]) gt 0)then continue
+
+  ; avoid segments with zero area
+  if(totalArea_mizu[iMizu] lt 0.001d)then continue
+
   ; check
   if(comID_sh[iShape] ne segId_mizu[iMizu])then stop, 'mismatch in comID'
   if(downSegId[iMizu] gt 0)then stop, 'expect downSegId to be less than or equal to zero'
 
-  ; get indices to the HDMA code
-  jShape = ixSeg2hru[jDangle]
-  if(jShape ne -9999)then begin
-   huc12_target = strtrim(huc12_sh[jShape],2)
-   hdma_target  = strtrim(hdma_sh[jShape],2)
-   if(featId_sh[jShape] ne comID_sh[iShape])then stop, 'unexpected match between catchment and flowline'
-
-  ; no mapping to the sub-basins
-  endif else begin
-
-   ; first check if there is no area
-   if(totalArea_mizu[iMizu] lt 0.001d)then continue
-
-   ; check
-   print, 'nUpstream = ', upSeg_count[iMizu]
-   stop, 'no mapping to sub-basins -- could be a zero-length connector reach and need to climb upstream'
-
-  endelse ; no mapping to sub-basins
+  ; *****
+  ; * COMPUTE PFAFSTETTER CODES FOR DANGLING REACHES...
+  ; ***************************************************
 
   ; initialize the Pfafstetter code
   strPfaf = '2000'  ; Pfaf=2 for North America is the Mackenzie, so '2000' provides a unique starting point for the conus
@@ -287,9 +294,17 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
   danglePfafstetter, iLevel, iMizu, pCode, segId_mizu, upSeg_count, upsReach, totalArea_mizu, $  ; input
                      mainStem, pfafVec  ; output
 
+  ; *****
+  ; * GET INDICES FOR THE UPSTREAM SEGMENTS/CATCHMENTS...
+  ; *****************************************************
+
+  ; get the total number of upstream catchments
+  ixTotal = where(strmid(strtrim(pfafVec,2),0,nLevels) eq strPfaf, nTotal)
+
   ; identify the upstream reaches
   ixSubset = where(strmid(strtrim(pfafVec[segId_mizu_ix],2),0,nLevels) eq strPfaf, nUpstream)
   if(nUpstream eq 0)then stop, 'expect some reaches upstream'
+  if(nUpstream ne nTotal)then stop, 'fatal error: basin crosses regional boundaries'
   pfafSubset = strtrim(pfafVec[segId_mizu_ix[ixSubset]], 2)
 
   ; identify the upstream catchments
@@ -301,16 +316,18 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
   hucSubset  = strtrim(huc12_sh[kxSubset], 2)
   hdmaSubset = strtrim(hdma_sh[kxSubset], 2)
 
-  ; check
-     ;    for iUpstream=0,nUpstream-1 do begin
-     ;     if(iUpstream mod 100 eq 0)then begin
-     ;      jUpstream = ixSubset[iUpstream]
-     ;      if(ixSeg2hru[jUpstream] ne -9999)then begin
-     ;       kUpstream = ixSeg2hru[jUpstream]
-     ;       print, iUpstream, comId_sh[comId_sh_ix[jUpstream]], featId_sh[kUpstream], ' : ', hdma_sh[kUpstream]
-     ;      endif
-     ;     endif
-     ;    endfor
+  ; get the maximum length of pfafSubset
+  pfafLength  = strlen(pfafSubset)
+  maxUpstream = max(pfafLength)-nLevels
+
+  ; *****
+  ; * IDENTIFY THE HUC LEVEL THAT CONTAINS A SUFFICIENT NUMBER OF PREVIOUSLY ASSIGNED REACHES...
+  ; ********************************************************************************************
+
+  ; find the huc level that both
+  ; (1) contains a high frequency of reaches upstream of the dangling reach; and
+  ; (2) contains a sufficient number of previously assigned reaches
+  ;       (defined as more previously assigned reaches than the number of upstream reaches)
 
   ; loop through regions/sub-regions/basin/sub-basin/watershed/sub-watershed
   jClass = -9999
@@ -337,10 +354,10 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
    endelse
 
    ; check
-   ;print, 'level, hucMode, nMode, nMatch, nCatchments, ratio = ', $
-   ; iClass, hucMode, nMode, nMatch, nCatchments, double(nMode)/double(nCatchments), format='(a,1x,5(i12,1x),f9.3)'
+   print, 'level, hucMode, nMode, nMatch, nCatchments, ratio = ', $
+    iClass, hucMode, nMode, nMatch, nCatchments, double(nMode)/double(nCatchments), format='(a,1x,5(i12,1x),f9.3)'
 
-   ; identify huc level where there are more catchments assigned than the area of the basin
+   ; identify huc level where there are more catchments assigned than the number of catchments considered
    if(nMatch gt nCatchments)then begin
     jClass=iClass
     nAssigned=nMatch
@@ -349,26 +366,52 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
 
   endfor  ; looping through classes
 
+  ; force match previously assigned Pfaf in the same HUC if HDMA is incorrect
+  getMode, long64(strmid(hdma_sh[kxSubset], 1, 1)), pfafMode, nMode
+  if(pfafMode ne 0 and  nhdFiles[1,iFile] eq 16)then forceHUC=1 else forceHUC=0
+
   ; check
-  ;print, 'available level = ', jClass
+  print, 'available level, forceHUC = ', jClass, forceHUC
+
+  ; *****
+  ; * IDENTIFY COMMON HDMA CODE...
+  ; ******************************
+
+  ; define threshold to use hdma
+  if(nhdString eq 'SR_09' or nhdString eq 'GB_16')then hdma_class=6 else hdma_class = 0
 
   ; decide to use HDMA
-  hdma_class = 4
-  if(jClass le hdma_class)then begin 
+  if(jClass le hdma_class and forceHUC eq 0)then begin 
+
+   ; identify define mode
+   defineMode='hdma'
 
    ; find the common HDMA code
-   for iCode=1,11 do begin
-    ixMatch = where(strmid(hdma_sh[kxSubset], iCode, 1) eq strmid(hdma_target, iCode, 1), nMatch)
-    ;print, strmid(hdma_target, iCode, 1), nMatch, nCatchments, double(nMatch)/double(nCatchments)
-    if(double(nMatch)/double(nCatchments) lt 0.5d)then begin
-     jCode = iCode-1
+   jCode=11 ; initialize jCode
+   for nCode=1,12 do begin
+    getMode, long64(strmid(hdma_sh[kxSubset], 0, nCode)), pfafMode, nMode
+    print, 'hdma: pfafMode, nMode, nCatchments, ratio = ', pfafMode, nMode, nCatchments, double(nMode)/double(nCatchments)
+    if(double(nMode)/double(nCatchments) lt 0.5d)then begin
+     jCode = nCode-1
      break
     endif
    endfor
-   commonCode = strmid(hdma_target, 1, jCode)+'0'
-   
+
+   ; get the Pfafstetter string (jcode-1 because we remove the continental identfier)
+   pfafString = strmid(strtrim(pfafMode,2), 1, jCode-1)
+
+   ; deal with special case of the Great Basin -- want a leading "9" so can treat as an integer
+   if(nhdString eq 'GB_16')then pfafString='9'+pfafString  ; need to check that no '90*' are in California
+
+  ; *****
+  ; * IDENTIFY COMMON PFAFSTETTER CODE FROM PREVIOUSLY ASSIGNED REACHES...
+  ; **********************************************************************
+
   ; use HUC-12
   endif else begin
+
+   ; identify define mode
+   defineMode='huc12'
 
    ; get PfafCode as strings
    ixAssigned = iyMatch[izMatch]
@@ -380,19 +423,71 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
    pfafPadded = strtrim(pfafCode_hru[ixAssigned]*10LL^(maxLength-pfafLength), 2)
    if(min(strlen(pfafPadded)) lt maxLength)then stop, 'unexpected string operations'
 
-   ; find the common Pfafstetter code
+   ; find the common previously assigned Pfafstetter code
+   jCode=maxLength ; initialize jCode
    for nCode=1,maxLength do begin
     getMode, long64(strmid(pfafPadded, 0, nCode)), pfafMode, nMode
-    ;print, 'pfafMode, nMode, nAssigned, ratio = ', pfafMode, nMode, nAssigned, double(nMode)/double(nAssigned)
+    print, 'huc12: pfafMode, nMode, nAssigned, ratio = ', pfafMode, nMode, nAssigned, double(nMode)/double(nAssigned)
     if(double(nMode)/double(nAssigned) lt 0.75d)then begin
      jCode = nCode-1
      break
     endif
    endfor
-   if(jCode eq 0)then stop, 'expect some Pfafstetter codes are assigned in the same region'
-   commonCode = strmid(strtrim(pfafMode,2), 0, jCode)+'0'
-   
+
+   ; get the Pfafstetter string
+   pfafString = strmid(strtrim(pfafMode,2), 0, jCode)
+
   endelse
+
+  ; identify trailing zeroes
+  strLength  = strlen(pfafString)
+  stringVec  = strarr(strLength)
+  if(strLength gt 2)then begin
+   reads, pfafString, stringVec, format='('+strtrim(strLength,2)+'(a1))'
+   ixNoZero = stregex(strjoin(reverse(stringVec)),'[1-9]')
+  endif else begin
+   ixNoZero = 0
+  endelse
+  print, 'defineMode, pfafMode, pfafString, strLength, stringVec = ', defineMode, pfafMode, ' : ', pfafString, strLength, stringVec
+
+  ; get the common code (remove trailing zeroes)
+  commonCode = strmid(pfafString, 0, strLength-ixNoZero)
+
+  ; get the desired length of the buffer
+  ixCheck = where(origCheck[0:iDangle-1] eq commonCode, nCheck)
+  if(nCheck ge 0)then                 maxBuffer = 3+2 ; 00x     (length = 3) plus 2 for extra space
+  if(nCheck ge nCode)then             maxBuffer = 5+2 ; 00x0x   (length = 5) plus 2 for extra space 
+  if(nCheck ge nCode*nCode+nCode)then maxBuffer = 7+2 ; 00x0x0x (length = 7) plus 2 for extra space
+
+  ; get the maximum string length
+  maxAllowed = maxLevel-maxBuffer-maxUpstream
+  if(maxAllowed le 3)then begin
+   print, 'maxLevel    = ', maxLevel
+   print, 'maxBuffer   = ', maxBuffer
+   print, 'maxUpstream = ', maxUpstream
+   print, 'commonCode  = ', commonCode
+   stop, 'really small allowable string'
+  endif
+
+  ; trim code if it is getting too big
+  ;print, 'before trim: commonCode = ', commonCode
+  if(strlen(commonCode) gt 10)then begin
+   ; first try: trim at the last double zero
+   ixDoubleZero = strpos(commonCode, '00', /reverse_search)
+   if(ixDoubleZero gt 3)then commonCode = strmid(commonCode, 0, ixDoubleZero)
+   ; second try, trim at the first double zero
+   if(strlen(commonCode) gt 10)then begin
+    ixDoubleZero = strpos(commonCode, '00')
+    if(ixDoubleZero gt 3)then commonCode = strmid(commonCode, 0, ixDoubleZero)
+   endif
+   ; third try, limit to 10 digits
+   if(strlen(commonCode) gt 10)then commonCode = strmid(commonCode, 0, 10)
+  endif
+  ;print, 'after trim: commonCode = ', commonCode
+
+  ; *****
+  ; * PROCESS DUPLICATE CODES...
+  ; ****************************
 
   ; save the original code
   origCheck[iDangle] = commonCode
@@ -400,22 +495,49 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
   ; ensure that we do not have duplicate codes
   if(iDangle gt 0)then begin
 
-   ; get the current count of common codes
-   ixCheck = where(origCheck[0:iDangle-1] eq commonCode, nCheck)
-   if(nCheck gt nSuffix)then stop, 'need more suffixes'
+   ; conduct multiple trials
+   for iTrial=0,nSuffix-1 do begin
 
-   ; update the common code
-   if(nCheck gt 0)then commonCode = commonCode + pSuffix[nCheck-1]
+    ; get the current count of common codes
+    ixCheck = where(origCheck[0:iDangle-1] eq commonCode, nCheck)
+    if(nCheck gt nSuffix)then stop, 'need more suffixes'
+
+    ; update the common code
+    if(iTrial eq 0)then begin
+     commonCode = origCheck[iDangle] + pSuffix[(nCheck)+iTrial]
+    endif else begin
+     if(nCheck gt 0)then commonCode = origCheck[iDangle] + pSuffix[(nCheck)+iTrial]
+    endelse
+    ;print, 'origCheck[iDangle], commonCode, iDangle, iTrial, nCheck = ', origCheck[iDangle], ' : ', commonCode, iDangle, iTrial, nCheck
+
+    ; finish if there are no duplicates
+    if(nCheck eq 0)then break
+
+    ; check
+    if(iTrial eq nSuffix-1)then stop, 'ran out of codes'
+
+   endfor  ; multiple trials
 
    ; check updated codes
    ixCheck = where(newCheck[0:iDangle-1] eq commonCode, nCheck)
    if(nCheck gt 0)then stop, 'unexpected duplicate code'
 
-  endif ; if iDangle>0
+  ; if iDangle=0
+  endif else begin
+   commonCode = origCheck[iDangle] + pSuffix[0]
+  endelse
 
   ; update codes
   newCheck[iDangle] = commonCode
-  print, 'commonCode = ', iDangle, ' : ', commonCode
+  codeLength[iDangle] = strlen(commonCode)
+
+  ; check
+  print, nhdString+' '+commonCode+': ', iDangle, nDangle, totalArea_mizu[iMizu]
+  if(strlen(commonCode) gt 18)then stop, 'code is too long'
+
+  ; *****
+  ; * ASSIGN COMMON HDMA CODE AND WRITE ATTRIBUTES...
+  ; *************************************************
 
   ; replace the initial string with the common code
   tempCode = commonCode+strmid(pfafSubset,nLevels)
@@ -429,11 +551,17 @@ for iFile=0,n_elements(nhdFiles)/2-1 do begin
   defineAttributes, shpFile_new, 'pfafCode',  'notUsed', ixPfafCode       ; ixPfafCode  = column in the file
   writeAttributes,  shpFile_new, ixPfafCode, comID_sh_ix[ixSubset], pfafCode_seg[comID_sh_ix[ixSubset]]
 
+  ;if(defineMode eq 'huc12')then stop
+  ;if(strmid(commonCode,0,5) eq '90227')then stop
+  ;if(strmid(commonCode,0,5) eq '90178')then stop
+  ;if(strmid(commonCode,0,7) eq '9035702')then stop
   ;stop
 
  endfor  ; looping through dangling reaches
 
- stop
+ print, 'maximum length of PfafCode = ', max(codeLength, iMax)
+ print, 'longest dangle = ', iMax
+ ;stop
 
 endfor  ; looping through regions
 

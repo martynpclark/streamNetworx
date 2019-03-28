@@ -11,6 +11,7 @@ savePath = base_filepath + 'idlSave/'
 
 ; Define shapefiles for coastal regions
 nhdFiles = [$
+            ['CO','15' ], $
             ['NE','01' ], $
             ['MA','02' ], $
             ['SA','03N'], $ 
@@ -88,7 +89,7 @@ ncdf_close, nc_file
 
 ; define IDL save file
 coastalSave_conus =  savePath + 'coastalSave_conus.sav'
-;spawn, 'rm ' + coastalSave_conus
+spawn, 'rm ' + coastalSave_conus
 
 ; check if the save file exists
 if(file_test(coastalSave_conus) eq 0)then begin
@@ -159,6 +160,43 @@ if(file_test(coastalSave_conus) eq 0)then begin
   shape_upsArea  =  replicate(doubleMissing,  nShapes)
   shape_upsArea[comID_sh_ix] = totalArea_mizu[segId_mizu_ix]
   
+  ; *****
+  ; * TREAT COLORADO AS A COASTAL ELEMENT -- CROSSES REGIONAL BOUNDARIES...
+  ; ***********************************************************************
+   
+  ; check if Lower Colorado
+  if(nameRegion eq 'CO_15')then begin
+
+   ; identify the most downstream Colorado segment
+   idTest = 21412883L
+   ixTest = where(segId_mizu[segId_mizu_ix] eq idTest, nMatch)
+   if(nMatch ne 1)then stop, 'cannot find the most downstream Colorado segment' 
+   print, 'Colorado: ', idTest, comID_sh[comID_sh_ix[ixTest[0]]], totalArea_mizu[segId_mizu_ix[ixTest[0]]]
+
+   ; write shape
+   iShape = comID_sh_ix[ixTest[0]]  ; original index in Shape file
+   writeShapefile, typeLine, iShape, ixNewShape, comId_sh[iShape], shapeFile_init, flowline_shapes
+
+   ; define attributes
+   defineAttributes, shapeFile_init, 'upsArea',   'float',         ixUpsArea      ; ixUpsArea = column in the file 
+   defineAttributes, shapeFile_init, 'coastMask', 'integer',       ixCoastMask    ; ixCoastMask = column in the file
+
+   ; write attributes   
+   writeAttributes, shapeFile_init, ixUpsArea,   ixNewShape, shape_upsArea[iShape]
+   writeAttributes, shapeFile_init, ixCoastMask, ixNewShape, 1    ; 0 = coastline, 1 = 1st trib, ...
+
+   ; update index
+   ixNewShape = ixNewShape+1
+
+   ; skip to the next region
+   continue
+
+  endif  ; if Colorado 
+
+  ; *****
+  ; * IDENTIFY DANGLING REACHES AND INITIALIZE COASTAL NAVIGATION...
+  ; ****************************************************************
+  
   ; restrict attention to the coastline flowlines
   ixCoastSubset = where(typeFlowline[comId_topo_ix] eq 'Coastline', nCoastSubset)
   if(nCoastSubset eq 0)then stop, 'expect coastline flowlines'
@@ -167,10 +205,6 @@ if(file_test(coastalSave_conus) eq 0)then begin
   shape_toComID  = replicate(-9999L,    nShapes)
   shape_toComID[comId_topo_ix[ixCoastSubset]] = toComid[fromComid_ix[ixCoastSubset]]
 
-  ; *****
-  ; * IDENTIFY DANGLING REACHES AND INITIALIZE COASTAL NAVIGATION...
-  ; ****************************************************************
-  
   ; define "dangling" reaches that touch the coast
   ixDangle = where(downSegId[segId_mizu_ix] le 0, nDangle)
   iyDangle = comID_sh_ix[ixDangle]  ; indices of dangling reaches in the shapefile
@@ -466,6 +500,12 @@ idTest  = 22811611L
 ixTest  = where(idUnique eq idTest, nMatch)
 if(nMatch ne 1)then stop, 'cannot find the Mississipi itself'
 pCodeVec[ixTest[0]] = '8'
+
+; identify the index of the Colorado
+idTest  = 21412883L
+ixTest  = where(idUnique eq idTest, nMatch)
+if(nMatch ne 1)then stop, 'cannot find the Colorado'
+pCodeVec[ixTest[0]] = '96'
 
 ; define new shape file
 shp_fileNew = base_filepath + 'nhdPlus_SHPs_coast/conusCoast_pfaf1.shp'

@@ -71,27 +71,57 @@ Revised IDL code for Pfafstetter numbering
 ** Outputs (shapefiles in nhdPlus_SHPs_coastDangle/)
 - Flowline_[subregion]'.shp'
 
-
-
-
-
-
-3. Identify dangling reaches across the CONUS
+--------------------------------------------------------------------------------------------------------
+4. Assign Pfafstetter codes for basins that DO NOT reach the coast
 
 ** Source code
-- identifyDangle.pro                       -- Identify dangling reaches across the CONUS
+- assignOtherDangle.pro                    -- compute pfafstetter indices for dangling reaches that do not reach the coast
 
 ** Inputs
 - NHDPlus2_updated-CONUS.nc                -- mizuRoute network topology file
-- nhdPlus_SHPs_final/[subregion].shp       -- Shapefiles for NHD+ flowlines
+- nhdPlus_final/Flowline_[subregion].shp   -- merged oCONUS NHD-Plus shapefiles
+- conusCoast_pfaf-all.shp                  -- Pfafstetter all levels for dangling reaches at the coast
 
-** Outputs
-- nhdPlus_SHPs_dangle/conusDangle.sh       -- shapefiles for the dangling reaches
+** Outputs (shapefiles in nhdPlus_SHPs_allDangle/)
+- Flowline_[subregion]'.shp'
 
+--------------------------------------------------------------------------------------------------------
+4. Assign new Pfafsttter codes to duplicate reaches
 
+** Source code
+- assignDuplicate.pro -- assign new Pfafsttter codes to duplicate reaches
 
+** Inputs (shapefiles in nhdPlus_SHPs_allDangle/)
+- Flowline_[subregion]'.shp'
 
+** Outputs (shapefiles in nhdPlus_SHPs_noDuplicate/)
+- Flowline_[subregion]'.shp'
 
+--------------------------------------------------------------------------------------------------------
+5. Assign Pfafstetter codes to basin
 
- 
+** Source code
+- assignBasins.pro -- assign Pfafstetter codes to basins 
 
+** Inputs (shapefiles in nhdPlus_SHPs_noDuplicate/)
+- Flowline_[subregion]'.shp'
+
+** Outputs (shapefiles in nhdPlus_SHPs_noDuplicate/)
+- Catchment_[subregion]'.shp'
+
+--------------------------------------------------------------------------------------------------------
+6. Build a NetCDF file 
+
+** Source code
+- buildNetCDF -- used to write Pfafsteter codes to NetCDF files
+
+** Inputs (shapefiles in nhdPlus_SHPs_noDuplicate/)
+- Flowline_[subregion]'.shp'
+- Catchment_[subregion]'.shp'
+
+** Output
+- conusPfafstetter.nc
+
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------

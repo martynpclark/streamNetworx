@@ -156,6 +156,8 @@ if(file_test(pfafName) eq 0)then begin
   danglePfafstetter, iLevel, iCONUS, pCode, segId_mizu, upSeg_count, upsReach, totalArea_mizu, $  ; input
                      mainStem, pfafVec  ; output
   
+  ;if(iDangle eq 2)then stop, 'end of loop'
+
  endfor  ; looping through dangling reaches
 
  ; save Pfafstetter vector
