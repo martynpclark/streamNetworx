@@ -1,7 +1,9 @@
 
 # PROCESS FOR DEFINING PFAFSTETTER CODES
 
-# Revised IDL code for Pfafstetter numbering and basin aggregation
+# Revised IDL code for
+# A) Pfafstetter numbering; and
+# B) basin aggregation
 
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
@@ -16,17 +18,17 @@
 
 - `match.pro`                                -- matches vectors
 
-- `danglePfafstetter.pro                    -- gets Pfafstetter codes upstream of a given point in the network
+- `danglePfafstetter.pro`                    -- gets Pfafstetter codes upstream of a given point in the network
    - `crawlUpstream.pro`
    - `get_PfafsCode.pro`
 
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
 
-# DEFINE PFAFSTETTER CODES
+# PART A: DEFINE PFAFSTETTER CODES
 
 --------------------------------------------------------------------------------------------------------
-## Identify overlap between HUC and HDMA polygons for each NHD+ catchment
+## A1. Identify overlap between HUC and HDMA polygons for each NHD+ catchment
 
 ### *Source code*
 - `nhd2hdma.R`                                -- identify overlap between HUC polygons and NHD+ catchments
@@ -49,7 +51,7 @@
 - `nhdPlus_SHPs_HDMA-HUC12/[subregion].shp` -- "most overlapping" HDMA/HUC polygon in each NHD+ polygons
 
 --------------------------------------------------------------------------------------------------------
-## 1. Identify Pfafstetter codes for the coastline
+## A2. Identify Pfafstetter codes for the coastline
 
 ### *Source code*
 - `coastPfafstetter.pro`                      -- identify Pfafstetter codes for the coastline (including the Great Lakes)
@@ -65,7 +67,7 @@
 - `conusCoast_pfaf-all.shp`                  -- Pfafstetter all levels
 
 --------------------------------------------------------------------------------------------------------
-## 2. Assign Pfafstetter codes for basins that reach the coast
+## A3. Assign Pfafstetter codes for basins that reach the coast
 
 ### *Source code*
 - assignCoastDangle.pro                      -- compute pfafstetter indices for dangling reaches at the coast 
@@ -79,7 +81,7 @@
 - `Flowline`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## 3. Assign Pfafstetter codes for basins that DO NOT reach the coast
+## A4. Assign Pfafstetter codes for basins that DO NOT reach the coast
 
 ### *Source code*
 - `assignOtherDangle.pro`                      -- compute pfafstetter indices for dangling reaches that do not reach the coast
@@ -93,7 +95,7 @@
 - `Flowline`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## 4. Assign new Pfafsttter codes to duplicate reaches
+## A5. Assign new Pfafsttter codes to duplicate reaches
 
 ### *Source code*
 - `assignDuplicate.pro`                      -- assign new Pfafsttter codes to duplicate reaches
@@ -105,7 +107,7 @@
 - `Flowline`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## 5. Assign Pfafstetter codes to basin
+## A6. Assign Pfafstetter codes to basin
 
 ### *Source code*
 - `assignBasins.pro`                         -- assign Pfafstetter codes to basins 
@@ -117,7 +119,7 @@
 - `Catchment`_*subregion*`.shp`
 
 --------------------------------------------------------------------------------------------------------
-## 6. Build a NetCDF file 
+## A7. Build a NetCDF file 
 
 ### *Source code*
 - buildNetCDF.pro                            -- used to write Pfafsteter codes to NetCDF files
@@ -131,4 +133,22 @@
 
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
+
+# PART B: BASIN AGGREGATION 
+
+--------------------------------------------------------------------------------------------------------
+## B1. Aggregate basins based on the Pfafstetter code 
+
+### *Source code*
+- `aggregatePfaf.pro`                         -- aggregate basins based on the Pfafstetter code
+   - `locationDangle.pro`                     -- identify the end point of each reach
+   - `getAggregationIndices.pro`              -- get indices for aggregated polygons
+      - `aggregateReaches.pro`                -- identify reaches to aggregate 
+
+### *Inputs*
+- `conusPfafstetter.nc`
+
+### *Outputs*
+- `conusPfafstetter_aggregate.nc`
+
 --------------------------------------------------------------------------------------------------------
