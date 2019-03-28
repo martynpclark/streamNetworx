@@ -18,7 +18,7 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 
 - `danglePfafstetter.pro                    -- gets Pfafstetter codes upstream of a given point in the network
    - `crawlUpstream.pro`
-   - `get\_PfafsCode.pro`
+   - `get_PfafsCode.pro`
 
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
@@ -31,22 +31,22 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 ### *Source code*
 - `nhd2hdma.R`                                -- identify overlap between HUC polygons and NHD+ catchments
 - `nhd2huc12.R`                               -- identify overlap between HDMA polygons and NHD+ catchments
-   - `area\_weighted.R`                       -- general area overlap routine (from David Blodgett)
+   - `area_weighted.R`                       -- general area overlap routine (from David Blodgett)
 
 - `extractShapeSubset.bash`                   -- bash script to extract subsets from shape file
-- `test\_nhd2huc12.R`                         -- test R script to handle slow processing times in the Great Lakes
+- `test_nhd2huc12.R`                         -- test R script to handle slow processing times in the Great Lakes
 
-- `add\_hdmaHUC.pro`                          -- assign the "most overlapping" HDMA/HUC polygon to NHD+ polygons
+- `add_hdmaHUC.pro`                          -- assign the "most overlapping" HDMA/HUC polygon to NHD+ polygons
 
 ### *Inputs*
-- `nhdPlus\_geopackage/`                      -- directory with NHD+ regional shapefiles
-- `HDMA/catch/na\_catch.gpkg`                 -- HDMA shapefile
-- `HUC/HUC\_geopackage/huc12\_conus.gpkg`     -- HUC-12 shapefile
+- `nhdPlus_geopackage/`                      -- directory with NHD+ regional shapefiles
+- `HDMA/catch/na_catch.gpkg`                 -- HDMA shapefile
+- `HUC/HUC_geopackage/huc12_conus.gpkg`     -- HUC-12 shapefile
 
 ### *Outputs*
-- `nhdPlus\_HDMA_mapping/[subregion].tsv`     -- overlap between HDMA polygons and NHD+ catchments
-- `nhdPlus\_HUC12_mapping/[subregion].tsv`    -- overlap between HUC-12 polygons and NHD+ catchments
-- `nhdPlus\_SHPs\_HDMA-HUC12/[subregion].shp` -- "most overlapping" HDMA/HUC polygon in each NHD+ polygons
+- `nhdPlus_HDMA_mapping/[subregion].tsv`     -- overlap between HDMA polygons and NHD+ catchments
+- `nhdPlus_HUC12_mapping/[subregion].tsv`    -- overlap between HUC-12 polygons and NHD+ catchments
+- `nhdPlus_SHPs_HDMA-HUC12/[subregion].shp` -- "most overlapping" HDMA/HUC polygon in each NHD+ polygons
 
 --------------------------------------------------------------------------------------------------------
 ## Identify Pfafstetter codes for the coastline
@@ -55,14 +55,14 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 - `coastPfafstetter.pro`                      -- identify Pfafstetter codes for the coastline (including the Great Lakes)
 
 ### *Inputs*
-- `HDPlus2\_updated-CONUS.nc`                 -- mizuRoute network topology file
-- `nhdPlus\_raw/[subregion].shp`              -- raw NHD-Plus shapefiles
+- `HDPlus2_updated-CONUS.nc`                 -- mizuRoute network topology file
+- `nhdPlus_raw/[subregion].shp`              -- raw NHD-Plus shapefiles
 
 ### *Outputs* (shapefiles in directory `nhdPlus_SHPs_coast/`)
-- `conusCoast\_pfaf-init.shp`                 -- initial coastline segments
-- `conusCoast\_pfaf1.shp`                     -- Pfafstetter level 1
-- `conusCoast\_pfaf2.shp`                     -- Pfafstetter level 2
-- `conusCoast\_pfaf-all.shp`                  -- Pfafstetter all levels
+- `conusCoast_pfaf-init.shp`                 -- initial coastline segments
+- `conusCoast_pfaf1.shp`                     -- Pfafstetter level 1
+- `conusCoast_pfaf2.shp`                     -- Pfafstetter level 2
+- `conusCoast_pfaf-all.shp`                  -- Pfafstetter all levels
 
 --------------------------------------------------------------------------------------------------------
 ## Assign Pfafstetter codes for basins that reach the coast
@@ -71,12 +71,12 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 - assignCoastDangle.pro                    -- compute pfafstetter indices for dangling reaches at the coast 
 
 ### *Inputs*
-- `NHDPlus2_updated-CONUS.nc`                -- mizuRoute network topology file
-- `nhdPlus\_final/Flowline\_[subregion].shp` -- merged oCONUS NHD-Plus shapefiles
-- `conusCoast\_pfaf-all.shp`                 -- Pfafstetter all levels for dangling reaches at the coast
+- `NHDPlus2_updated-CONUS.nc`                 -- mizuRoute network topology file
+- `nhdPlus_final/Flowline\_ _subregion_ .shp` -- merged oCONUS NHD-Plus shapefiles
+- `conusCoast_pfaf-all.shp`                   -- Pfafstetter all levels for dangling reaches at the coast
 
-### *Outputs* (shapefiles in `nhdPlus\_SHPs\_coastDangle/`)
-- `Flowline\_[subregion].shp`
+### *Outputs* (shapefiles in `nhdPlus_SHPs_coastDangle/`)
+- `Flowline\_ _subregion_ .shp`
 
 --------------------------------------------------------------------------------------------------------
 ## Assign Pfafstetter codes for basins that DO NOT reach the coast
@@ -99,10 +99,10 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 - `assignDuplicate.pro`                      -- assign new Pfafsttter codes to duplicate reaches
 
 ### *Inputs* (shapefiles in `nhdPlus_SHPs_allDangle/`)
-- `Flowline\_[subregion].shp`
+- `Flowline_[subregion].shp`
 
 ### *Outputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
-- `Flowline\_[subregion].shp`
+- `Flowline_[subregion].shp`
 
 --------------------------------------------------------------------------------------------------------
 ## Assign Pfafstetter codes to basin
@@ -110,11 +110,11 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 ### *Source code*
 - `assignBasins.pro`                         -- assign Pfafstetter codes to basins 
 
-### *Inputs* (shapefiles in `nhdPlus\_SHPs\_noDuplicate/`)
-- `Flowline\_[subregion].shp`
+### *Inputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
+- `Flowline_{subregion}.shp`
 
-** Outputs (shapefiles in `nhdPlus\_SHPs\_noDuplicate/`)
-- `Catchment_[subregion].shp`
+### *Outputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
+- `Catchment_`[subregion]`.shp`
 
 --------------------------------------------------------------------------------------------------------
 ## Build a NetCDF file 
@@ -123,8 +123,8 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 - buildNetCDF.pro                            -- used to write Pfafsteter codes to NetCDF files
 
 ### *Inputs* (shapefiles in `nhdPlus_SHPs_noDuplicate/`)
-- `Flowline\_[subregion].shp`
-- `Catchment\_[subregion].shp`
+- `Flowline_[subregion].shp`
+- `Catchment_[subregion].shp`
 
 ** Output
 - `conusPfafstetter.nc`
