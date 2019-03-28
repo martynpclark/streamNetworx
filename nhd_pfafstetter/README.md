@@ -72,7 +72,7 @@ Revised IDL code for Pfafstetter numbering and basin aggregation
 
 ### *Inputs*
 - `NHDPlus2_updated-CONUS.nc`                 -- mizuRoute network topology file
-- `nhdPlus_final/Flowline\_ _subregion_ .shp` -- merged oCONUS NHD-Plus shapefiles
+- `nhdPlus_final/Flowline` _**subregion** `.shp` -- merged oCONUS NHD-Plus shapefiles
 - `conusCoast_pfaf-all.shp`                   -- Pfafstetter all levels for dangling reaches at the coast
 
 ### *Outputs* (shapefiles in `nhdPlus_SHPs_coastDangle/`)
