@@ -57,20 +57,20 @@
 - `coastPfafstetter.pro`                      -- identify Pfafstetter codes for the coastline (including the Great Lakes)
 
 ### *Inputs*
-- `HDPlus2_updated-CONUS.nc`                 -- mizuRoute network topology file
+- `NHDPlus2_updated-CONUS.nc`                -- mizuRoute network topology file
 - `nhdPlus_raw/[subregion].shp`              -- raw NHD-Plus shapefiles
 
 ### *Outputs* (shapefiles in directory `nhdPlus_SHPs_coast/`)
 - `conusCoast_pfaf-init.shp`                 -- initial coastline segments
-- `conusCoast_pfaf1.shp`                     -- Pfafstetter level 1
-- `conusCoast_pfaf2.shp`                     -- Pfafstetter level 2
+- `conusCoast_pfaf1.shp`                     -- Pfafstetter level 1 (continental domain)
+- `conusCoast_pfaf2.shp`                     -- Pfafstetter level 2 (big basins)
 - `conusCoast_pfaf-all.shp`                  -- Pfafstetter all levels
 
 --------------------------------------------------------------------------------------------------------
 ## A3. Assign Pfafstetter codes for basins that reach the coast
 
 ### *Source code*
-- assignCoastDangle.pro                      -- compute pfafstetter indices for dangling reaches at the coast 
+- `assignCoastDangle.pro`                    -- compute pfafstetter indices for dangling reaches at the coast 
 
 ### *Inputs*
 - `NHDPlus2_updated-CONUS.nc`                -- mizuRoute network topology file
@@ -146,9 +146,32 @@
       - `aggregateReaches.pro`                -- identify reaches to aggregate 
 
 ### *Inputs*
-- `conusPfafstetter.nc`
+- `conusPfafstetter.nc`                       -- raw Pfafstetter file
 
 ### *Outputs*
-- `conusPfafstetter_aggregate.nc`
+- `conusPfafstetter_aggregate.nc`             -- aggregated Pfafstetter file
+- `nhdPlus_SHPs_class/Flowline`_*subregion*`.shp`
+- `nhdPlus_SHPs_class/Catchment`_*subregion*`.shp`
 
+--------------------------------------------------------------------------------------------------------
+## B2. Create mizuRoute files 
+
+### *Source code*
+- `mizuRoute_aggregate.pro`                   -- define aggregated input files for mizuRoute
+
+### *Inputs*
+- `conusPfafstetter_aggregate.nc`             -- aggregated netcdf files
+- `nhdPlus_SHPs_class/Flowline`_*subregion*`.shp`
+- `nhdPlus_SHPs_class/Catchment`_*subregion*`.shp`
+
+### *Outputs*
+- `mizuRoute_input/network`_*subregion*`-agg.nc`           -- mizuRoute network topology files
+- `mizuRoute_input/spatialWeights`_*subregion*`-agg.nc`    -- mizuRoute spatial weights files
+- `nhdPlus_SHPs_aggregate/Flowline`_*subregion*`-agg.shp`  -- aggregated network files
+- `nhdPlus_SHPs_aggregate/Catchment`_*subregion*`-agg.shp` -- aggregated catchment files
+
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------

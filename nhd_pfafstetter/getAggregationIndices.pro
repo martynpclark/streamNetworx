@@ -7,7 +7,7 @@ ixCount = 0
 areaConv = 1.d+6
 
 ; define the largest area
-areaBig = areaMax*2.d
+areaBig = areaMax*1.d
 
 ; define initial Pfafstetter code
 pCodeOld = basePfaf
