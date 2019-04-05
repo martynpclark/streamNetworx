@@ -158,6 +158,10 @@
 
 ### *Source code*
 - `mizuRoute_aggregate.pro`                   -- define aggregated input files for mizuRoute
+   - `get_mainStem.pro`                       -- identify the main stem
+   - `get_downstream.pro`                     -- identify downstream reaches
+   - `check_downstream.pro`                   -- check downstream reaches
+   - `aggregateShapefile.pro`                 -- aggregate the shapefile
 
 ### *Inputs*
 - `conusPfafstetter_aggregate.nc`             -- aggregated netcdf files
