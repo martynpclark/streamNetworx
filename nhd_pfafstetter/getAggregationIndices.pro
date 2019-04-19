@@ -1,5 +1,9 @@
 pro getAggregationIndices, basePfaf, ixInitial, pfafVec_string, basArea_mizu, downSegId_mizu, endLat, endLon, areaMin, areaMax, pfafId
 
+; define named variables
+no  = 0
+yes = 1
+
 ; initialize counter
 ixCount = 0
 
@@ -34,7 +38,10 @@ for iPfaf1=0,9 do begin
  if(nSubset gt 0)then begin
   ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
   agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-  if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+
+  ; check if we need to aggregate
+  checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+  if(doAggregate eq no and nSubset ge 9)then begin
  
    ; update variables
    ixCount   = ixCount+1 
@@ -59,7 +66,8 @@ for iPfaf1=0,9 do begin
     if(nSubset gt 0)then begin
      ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
      agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-     if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+     checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+     if(doAggregate eq no and nSubset ge 9)then begin
    
       ; update variables
       ixCount   = ixCount+1 
@@ -84,7 +92,8 @@ for iPfaf1=0,9 do begin
        if(nSubset gt 0)then begin
         ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
         agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-        if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+        checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+        if(doAggregate eq no and nSubset ge 9)then begin
       
          ; update variables
          ixCount   = ixCount+1 
@@ -109,7 +118,8 @@ for iPfaf1=0,9 do begin
           if(nSubset gt 0)then begin
            ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
            agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-           if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+           checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+           if(doAggregate eq no and nSubset ge 9)then begin
          
             ; update variables
             ixCount   = ixCount+1 
@@ -134,7 +144,8 @@ for iPfaf1=0,9 do begin
              if(nSubset gt 0)then begin
               ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
               agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-              if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+              checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+              if(doAggregate eq no and nSubset ge 9)then begin
             
                ; update variables
                ixCount   = ixCount+1 
@@ -158,7 +169,8 @@ for iPfaf1=0,9 do begin
                 if(nSubset gt 0)then begin
                  ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                  agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                 if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                 checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                 if(doAggregate eq no and nSubset ge 9)then begin
                
                   ; update variables
                   ixCount   = ixCount+1 
@@ -182,7 +194,8 @@ for iPfaf1=0,9 do begin
                    if(nSubset gt 0)then begin
                     ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                     agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                    if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                    checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                    if(doAggregate eq no and nSubset ge 9)then begin
                   
                      ; update variables
                      ixCount   = ixCount+1 
@@ -206,7 +219,8 @@ for iPfaf1=0,9 do begin
                       if(nSubset gt 0)then begin
                        ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                        agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                       if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                       checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                       if(doAggregate eq no and nSubset ge 9)then begin
                      
                         ; update variables
                         ixCount   = ixCount+1 
@@ -230,7 +244,8 @@ for iPfaf1=0,9 do begin
                          if(nSubset gt 0)then begin
                           ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                           agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                          if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                          checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                          if(doAggregate eq no and nSubset ge 9)then begin
                         
                            ; update variables
                            ixCount   = ixCount+1 
@@ -255,7 +270,8 @@ for iPfaf1=0,9 do begin
                             if(nSubset gt 0)then begin
                              ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                              agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                             if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                             checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                             if(doAggregate eq no and nSubset ge 9)then begin
 
                               ; update variables
                               ixCount   = ixCount+1 
@@ -279,7 +295,8 @@ for iPfaf1=0,9 do begin
                                if(nSubset gt 0)then begin
                                 ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                                 agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                                if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                                checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                                if(doAggregate eq no and nSubset ge 9)then begin
 
                                  ; update variables
                                  ixCount   = ixCount+1 
@@ -303,7 +320,8 @@ for iPfaf1=0,9 do begin
                                   if(nSubset gt 0)then begin
                                    ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                                    agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                                   if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                                   checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                                   if(doAggregate eq no and nSubset ge 9)then begin
 
                                     ; update variables
                                     ixCount   = ixCount+1 
@@ -327,7 +345,8 @@ for iPfaf1=0,9 do begin
                                      if(nSubset gt 0)then begin
                                       ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                                       agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                                      if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                                      checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                                      if(doAggregate eq no and nSubset ge 9)then begin
 
                                        ; update variables
                                        ixCount   = ixCount+1 
@@ -351,7 +370,8 @@ for iPfaf1=0,9 do begin
                                         if(nSubset gt 0)then begin
                                          ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                                          agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                                         if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                                         checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                                         if(doAggregate eq no and nSubset ge 9)then begin
 
                                           ; update variables
                                           ixCount   = ixCount+1 
@@ -375,7 +395,8 @@ for iPfaf1=0,9 do begin
                                            if(nSubset gt 0)then begin
                                             ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                                             agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                                            if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                                            checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                                            if(doAggregate eq no and nSubset ge 9)then begin
 
                                              ; update variables
                                              ixCount   = ixCount+1 
@@ -399,7 +420,8 @@ for iPfaf1=0,9 do begin
                                               if(nSubset gt 0)then begin
                                                ixArea                 = fix(strmid(pCode, strlen(pCode)-1, 1))-1
                                                agArea[ixCount,ixArea] = total(basArea_mizu[ixPfaf.(ixCount)[ixSubset]])
-                                               if(agArea[ixCount,ixArea] gt areaMax and nSubset ge 9)then begin
+                                               checkAggregate, pCode, areaMax, pfafVec_string, basArea_mizu, agArea[ixCount,ixArea], ixPfaf.(ixCount)[ixSubset], doAggregate
+                                               if(doAggregate eq no and nSubset ge 9)then begin
 
                                                 ; update variables
                                                 ixCount   = ixCount+1 
