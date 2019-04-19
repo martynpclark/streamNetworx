@@ -226,8 +226,12 @@ for iAggregate=0,nAggregate-1 do begin
  ; get the identifier
  cId = strtrim(strmid(basename, strlen(origPrefix)),2)
 
+ ; deifne the new path for NetCDF files
+ nc_filepath = nhd_root + 'mizuRoute_input' + cId + '/'
+
  ; create new directory
  spawn, 'mkdir -p ' + nhd_root + newPrefix + cId + '/'
+ spawn, 'mkdir -p ' + nc_filepath 
 
  ; *****
  ; * READ THE PFAFSTETTER CODES...
@@ -265,7 +269,7 @@ for iAggregate=0,nAggregate-1 do begin
  
  ; close file
  ncdf_close, ncid
- 
+
  ; re-order vectors for catchments
  pCode_cat  = strarr(nHRU)
  pClass_cat = strarr(nHRU)
@@ -277,6 +281,8 @@ for iAggregate=0,nAggregate-1 do begin
  pClass_seg = strarr(nSeg)
  pCode_seg[ sort(segId_mizu)] = strtrim(pCode_flowline[ sort(segId_pfaf)], 2)
  pClass_seg[sort(segId_mizu)] = strtrim(pClass_flowline[sort(segId_pfaf)], 2)
+
+ stop
 
  ; *****
  ; * AGGREGATE THE MIZUROUTE NETWORK TOPOLOGY FILE...
@@ -798,7 +804,7 @@ for iAggregate=0,nAggregate-1 do begin
   ; ********************************************
  
   ; define the NetCDF file
-  nc_filename = nhd_root + 'mizuRoute_input/network_' + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.nc'
+  nc_filename = nhd_root + 'network_' + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.nc'
  
   ; create file
   print, 'Creating the aggregated NetCDF file for the network topology'
@@ -848,7 +854,7 @@ for iAggregate=0,nAggregate-1 do begin
   nOverlap = n_elements(idGrid_agg)
  
   ; define the NetCDF file
-  nc_filename = nhd_root + 'mizuRoute_input/spatialWeights_' + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.nc'
+  nc_filename = nhd_root + 'spatialWeights_' + nhdFiles[0,iFile] + '_' + nhdFiles[1,iFile] + '-agg.nc'
  
   ; create file
   print, 'Creating the aggregated NetCDF file for the spatial weights'
@@ -887,12 +893,10 @@ for iAggregate=0,nAggregate-1 do begin
  
   ; close netcdf file
   ncdf_close, ncid
- 
+
   stop, 'completed region'
  
  endfor  ; looping through shapefiles
-
- stop
 
 endfor  ; looping through different levels of aggregation
 
