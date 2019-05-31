@@ -16,6 +16,7 @@ shporig <- gridNames$shporig  # shapefile of domain subset (in projection EPSG:4
 shpproj <- gridNames$shpproj  # reprojected shapefile of domain subset (in projection proj)
 
 # ensure bounding box is 0-360
+if(bbox[1]*bbox[3] < 0) stop("cannot handle case where the domain crosses Grenwich")
 if(bbox[1] < 0) bbox[1]=bbox[1]+360
 if(bbox[3] < 0) bbox[3]=bbox[3]+360
 

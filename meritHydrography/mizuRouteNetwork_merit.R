@@ -5,20 +5,23 @@ library(ncdf4)
 # DEFINE FILES...
 #################
 
+# define regional subset
+subset <- "pfaf_71"
+
 # define path to the hydrography
 base_path <- "/Users/mac414/geospatial_data/MERIT-hydro/"
 dbf_path  <- paste(base_path, "pfaf_level_02/",  sep="")
 out_path  <- paste(base_path, "mizuRoute/ancillary_data/", sep="")
 
 # define file suffix
-dbfSuffix <- "_pfaf_74_MERIT_Hydro_v07_Basins_v01.dbf"
+dbfSuffix <- paste(subset, "_MERIT_Hydro_v07_Basins_v01_bugfix1.dbf", sep="")
 
 # define input .dbf files
-cat_dbf <- paste(dbf_path, "cat", dbfSuffix, sep="")
-riv_dbf <- paste(dbf_path, "riv", dbfSuffix, sep="")
+cat_dbf <- paste(dbf_path, "cat_", dbfSuffix, sep="")
+riv_dbf <- paste(dbf_path, "riv_", dbfSuffix, sep="")
 
 # define the output ancillary netcdf files
-anc_ncdf <- paste(out_path, "mizuRouteNetwork_merit.nc", sep="")
+anc_ncdf <- paste(out_path, "mizuRouteNetwork_merit_", subset, ".nc", sep="")
 
 #####
 # READ THE DBF FILES...

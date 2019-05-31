@@ -14,15 +14,23 @@ no  <- 0
 # DEFINE FILES...
 #################
 
+
+
+
 # define projection
 #proj <- 5070  # NOTE: 5070 is CONUS Albers. Need to change for other regions.
 #proj <- 3035  # NOTE: 3035 is Europe equal area. Need to change for other regions.
 #proj <- 7722  # NOTE: 1121 is India. Need to change for other regions.
 proj <- 3408  # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
+#proj <- 102022  # NOTE: 102022 is Africa Albers equal area conic
 
 # define subregion
+#merit_sub <- "cat_pfaf_17"   # Nile
 #merit_sub <- "cat_pfaf_23"   # Central Europe
-merit_sub <- "cat_pfaf_45"   # South Asia
+#merit_sub <- "cat_pfaf_34"   # Lena
+#merit_sub <- "cat_pfaf_71"   # Saskatchewan
+merit_sub <- "cat_pfaf_72"   # GreatLakes
+#merit_sub <- "cat_pfaf_45"   # South Asia
 #merit_sub <- "cat_pfaf_74"   # Misissippi
 
 # define paths
@@ -32,7 +40,7 @@ cat_path  <- paste(base_path, "geopackage/", sep="")
 
 # define files/paths
 cru_nc     <- paste(grid_path, "cru360x720.nc", sep="")
-cru_gdb    <- paste(grid_path, "cru360x720_idx.gpkg", sep="")
+cru_gdb    <- paste(grid_path, "cru360x720_idx.", merit_sub, ".gpkg", sep="")
 merit_gdb  <- paste(cat_path,  merit_sub, "_MERIT_Hydro_v07_Basins_v01.gpkg", sep="")
 merit_proj <- paste(cat_path,  "proj/", merit_sub, "_MERIT_Hydro_v07_Basins_v01.shp", sep="")
 
@@ -65,9 +73,9 @@ done <- no
 ncindex <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.nc", sep="")
 tiforig <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.tif", sep="")
 tifproj <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.proj.tif", sep="")
-tif_sub <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.subset.tif", sep="")
-shporig <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.shp", sep="")
-shpproj <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.proj.shp", sep="")
+tif_sub <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.", merit_sub, ".tif", sep="")
+shporig <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.", merit_sub, ".shp", sep="")
+shpproj <- paste(grid_path, file_path_sans_ext(basename(cru_nc)), "_idx.", merit_sub, ".", proj, ".shp", sep="")
 
 # get the original merit polygons
 tic("read the MERIT polygons")
@@ -77,9 +85,14 @@ toc()  # print timing
 # get the bounding box from the MERIT subset
 bbox <- st_bbox(merit)
 
+# ensure bounding box is 0-360
+if(bbox[1] < 0) bbox[1]=bbox[1]+360
+if(bbox[3] < 0) bbox[3]=bbox[3]+360
+
 # define spatial window as a string
 buffer <- 0.5  # degrees
 window <- paste(bbox[1]-buffer, bbox[4]+buffer, bbox[3]+buffer, bbox[2]-buffer)
+print(window)
 
 # check if need to process the grid
 if(needGrid==yes){
@@ -112,6 +125,7 @@ system(paste('ogr2ogr -f "ESRI Shapefile" -t_srs EPSG:', proj, " ", shpproj, " "
 toc()  # print timing
 
 }  # if we need the grid
+
 
 #####
 # READ FILES...

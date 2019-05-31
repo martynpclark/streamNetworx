@@ -15,10 +15,10 @@ yes <- 1
 no  <- 0
 
 # check if we need to disaggregate
-isDisaggregate <- no
+isDisaggregate <- yes
 
 # check if we need to get the regional subset
-isRegionSubset <- no
+isRegionSubset <- yes
 
 # -----
 # * disaggregate land mask into separated polygons...
@@ -27,10 +27,10 @@ isRegionSubset <- no
 if(isDisaggregate == yes){
 
  tic("reading landmask")
- landmask <- read_sf(landmaskNames$landmask_shp) %>% st_transform(st_crs(shapes)$epsg)
+ landmask <- read_sf(landmaskNames$landmask_shp)
  toc()  # print timing
 
- tic("disaggregate polygons into seperated polygons")
+ tic("disaggregate polygons into separated polygons")
  landmask <- st_cast(landmask, "MULTIPOLYGON") %>% st_cast("POLYGON")
  toc()  # print timing
 
@@ -54,6 +54,11 @@ if(isDisaggregate == yes){
 
 if(isRegionSubset == yes){
 
+
+
+ %>% st_transform(st_crs(shapes)$epsg)
+
+
  # get the region
  buffer <- 1e4 # 10 km buffer
  region <- st_as_sfc(st_bbox(shapes)) %>% st_buffer(buffer) 
@@ -76,7 +81,7 @@ if(isRegionSubset == yes){
  row.names(landmask) <- NULL  # reset to 1,2,3,...,n
  landmask$FID <- rownames(landmask)
 
- # remove all columns EXCEPT for the feature ID
+ # remove all columns EXCEPT for the feature ID and area
  landmask <- landmask[ , c("FID", "area")]
 
  tic("write spatial subset")

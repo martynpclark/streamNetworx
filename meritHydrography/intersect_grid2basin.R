@@ -4,9 +4,7 @@ library(sf)
 library(dplyr)
 library(tictoc)
 library(data.table)
-source("area_weighted.R")
-source("makeGridSubset.R")
-source("makeSpatialWeights.R")
+source("/Users/mac414/analysis/poly2poly_R/area_weighted.R")
 
 # logical definitions
 yes <- 1
@@ -16,12 +14,11 @@ no  <- 0
 hydroDataset <- "merit"
 
 # define subregion
-merit_sub  <- "cat_pfaf_17"   # Saskatchewan-Nelson
-subsetName <- "nile"
+merit_sub  <- "cat_pfaf_71"   # Saskatchewan-Nelson
+subsetName <- "saskatchewan"
 
 # define projection
-proj <- 102022  # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
-#proj <- 3408    # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
+proj <- 3408  # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
 
 # define the variable names for the hydrography dataset
 if(hydroDataset == "merit") id_basins<-"COMID" else id_basins<-"PFAF_CODE"
@@ -39,7 +36,7 @@ grid_path  <- paste(base_path, "MERIT-hydro/globalGrid/cru360x720/", sep="")
 hdma_path  <- paste(base_path, "HDMA/catch/", sep="")
 
 # Define the output path
-outputPath = paste(base_path, "MERIT-hydro/mizuRoute/ancillary_data/mapping/", sep="")
+outputPath = paste(base_path, "mizuRoute/ancillary_data/mapping/", sep="")
 
 # define shapefiles for the river network
 if(hydroDataset == "merit"){
@@ -62,17 +59,16 @@ gridNames <- data.table(grid_nc = grid_nc,
                         shpproj = paste(grid_path, grid_pref, "_idx.", subsetName, ".", proj, ".shp", sep="") )
 
 # define output names
-grid2basin_tsv <- paste(outputPath, file_path_sans_ext(basename(basin_shp)), ".tsv", sep="")
-grid2basin_shp <- paste(outputPath, file_path_sans_ext(basename(basin_shp)), ".shp", sep="")
-grid2basin_nc  <- paste(outputPath, file_path_sans_ext(basename(basin_shp)), ".nc",  sep="")
+grid2basin_tsv <- paste(outputPath, "grid2basin.tsv", sep="")
+grid2basin_shp <- paste(outputPath, "grid2basin.shp", sep="")
+grid2basin_nc  <- paste(outputPath, "grid2basin.nc",  sep="")
 
 # -----
 # * get spatial files transformed to projection EPSG:proj...
 # ----------------------------------------------------------
 
 tic("read the basin shapefiles")
-proj_wgs84  <- 4326
-basins_orig <- read_sf(basin_shp) %>% st_set_crs(proj_wgs84)
+basins_orig <- read_sf(basin_shp)
 toc()  # print timing
 
 # get the bounding box from the stream network subset
@@ -105,8 +101,8 @@ toc()  # print timing
 basins2grid <- subset(basins2grid_full, basins2grid_full$hru_id != 'NA')
 
 # write intersections to a .tsv file
-readr::write_tsv(basins2grid, grid2basin_tsv)
+readr::write_tsv(lake2grid, grid2lake_tsv)
 
 # make the spatial weights file
 names(basins2grid)[names(basins2grid) == id_basins] <- "var_basins"  # change the name of the "id" column to "var_basins"
-is2dGrid <- makeSpatialWeights(gridNames$grididx, grid2basin_nc, basins2grid$var_basins, basins2grid$hru_id, basins2grid$w)
+is2dGrid <- makeSpatialWeights(gridNames$grididx, grid2basins_nc, basins2grid$var_basins, basins2grid$hru_id, basins2grid$w)

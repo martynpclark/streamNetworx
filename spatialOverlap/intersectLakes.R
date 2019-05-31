@@ -10,11 +10,30 @@ source("lake_stream_intersect.R")
 source("lake_stream_connections.R")
 
 # define projection
-proj <- 3408  # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
+#proj <- 5070  # NOTE: 5070 is CONUS Albers. Need to change for other regions.
+#proj <- 3035  # NOTE: 3035 is Europe equal area. Need to change for other regions.
+#proj <- 7722  # NOTE: 1121 is India. Need to change for other regions.
+#proj <- 3408  # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
+proj <- 102022  # NOTE: 102022 is Africa Albers equal area conic
 
 # define hydrography dataset
 hydroDataset <- "merit"
 #hydroDataset <- "hdma"
+
+# Define grid name (subset)
+subsetName <- "LakeVictoria"
+
+# define the name of the lakes file
+lake_name = "AfricaLakes_big.shp"
+
+# define stream network prefix
+if(hydroDataset == "merit"){
+ riv_pref = 'riv_pfaf_17'   # 17 = Nile
+} else {
+ riv_pref = 'AF_streams_nile'
+}
+
+# -- after here less need to change --
 
 # define the variable names for hydroLakes
 id_lakes   <- "Hylak_id"
@@ -32,9 +51,6 @@ if(hydroDataset == "merit"){
  name_upsArea <- "flow_acc"
 }
 
-# Define grid name (subset)
-subsetName <- "LakePowell"
-
 # -----
 # * define files...
 # -----------------
@@ -50,13 +66,13 @@ outputPath = "/Users/mac414/geospatial_data/stream2lakes/"
 
 # define shapefiles for the river network
 if(hydroDataset == "merit"){
- stream_shp <- paste(merit_path, "riv_pfaf_77_MERIT_Hydro_v07_Basins_v01.shp", sep="")
+ stream_shp <- paste(merit_path, riv_pref, "_MERIT_Hydro_v07_Basins_v01.shp", sep="")
 } else {
- stream_shp <- paste(hdma_path, "na_streams_colorado.shp", sep="")
+ stream_shp <- paste(hdma_path,  riv_pref, ".shp", sep="")
 }
 
 # define shapefiles for the lakes
-lake_shp   <- paste(lake_path,  "NorthAmericaLakes_big.shp", sep="")
+lake_shp   <- paste(lake_path,  lake_name, sep="")
 
 # define NetCDF file that describes the CTSM grid
 grid_nc   <- paste(grid_path, "cru360x720.nc", sep="")
@@ -71,17 +87,20 @@ gridNames <- data.table(grid_nc = grid_nc,
                         shporig = paste(grid_path, grid_pref, "_idx.", subsetName, ".shp", sep=""),
                         shpproj = paste(grid_path, grid_pref, "_idx.", subsetName, ".", proj, ".shp", sep="") )
 
+# define the stream2lake prefix
+stream2lake_pref <- paste("stream2lake", hydroDataset, subsetName, sep=".")
+
 # define output names for tsv files
 grid2lake_tsv   <- paste(outputPath, "grid2lake.tsv", sep="")
-stream2lake_tsv <- paste(outputPath, "stream2lake", hydroDataset, ".tsv", sep="")
+stream2lake_tsv <- paste(outputPath, stream2lake_pref, ".tsv", sep="")
 
 # define output names for shapefiles
 grid2lake_shp   <- paste(outputPath, "grid2lake.shp", sep="")
-stream2lake_shp <- paste(outputPath, "stream2lake", hydroDataset, ".shp", sep="")
+stream2lake_shp <- paste(outputPath, stream2lake_pref, ".shp", sep="")
 
 # define output names for netcdf files
 grid2lake_nc   <- paste(outputPath, "grid2lake.nc", sep="")
-stream2lake_nc <- paste(outputPath, "stream2lake", hydroDataset, ".nc", sep="")
+stream2lake_nc <- paste(outputPath, stream2lake_pref, ".nc", sep="")
 
 # -----
 # * get spatial files transformed to projection EPSG:proj...
