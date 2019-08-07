@@ -17,7 +17,7 @@ yes <- 1
 no  <- 0
 
 # compute regional subset?
-isRegionSubset <- no
+isRegionSubset <- yes
 
 # get area tolerance
 areaThreshold <- set_units(25e6, m^2)   # 25 km2

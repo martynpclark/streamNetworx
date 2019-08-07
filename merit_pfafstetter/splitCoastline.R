@@ -37,6 +37,9 @@ tempOutput_test2 <- paste(fPath, "test2.shp", sep="")
 startIndex <- ix0
 firstIter  <- yes
 
+# define the tolerance for coastal proximity
+closeTol  <- set_units(1000, m)   # 1000 m
+
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -53,17 +56,18 @@ for (feature in 1:length(lCoast$FID)){
  if(desireVerboseTiming == yes) tic(info)
 
  # get the logical vector defining the outlets closest to the current coastline
+ info <- "restrict attention to outlets that are close to the coast"
+ if(desireVerboseTiming == yes) tic(info)
  isDesired <- outlets$coastId == lCoast$coastId[feature]
  if(sum(isDesired) > 0){ # if outlets intersect the coastal feature
-
-  info <- "restrict attention to outlets that are close to the coast"
-  if(desireVerboseTiming == yes) tic(info)
-  closeTol  <- set_units(1000, m)   # 1000 m
   isCoastal <- st_distance(subset(outlets,isDesired), lCoast[feature,]) < closeTol
   isDesired[isDesired] <- isCoastal  # update desired outlets
   outlets$isCoastal[isDesired] = 1   # define coastal outlets
   subsetOutlets <- subset(outlets,isDesired)
-  if(desireVerboseTiming == yes) toc()
+ } # if outlets intersect the coastal feature
+
+ # check if any outlets intersect the coast
+ if(sum(isDesired) > 0){ # if outlets intersect the coastal feature 
 
   info <- "get artificial path connecting the dangling reaches to the coast"
   if(desireVerboseTiming == yes) tic(info)

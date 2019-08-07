@@ -19,13 +19,15 @@ segIndex <- rankVec[order(rankVec$toCoast),]
 # test that we got all segments
 v1   <- coastConnect$segId[rankVec$segId]
 v2   <- coastConnect$toCoast[rankVec$toCoast]
-if(length(which(v1-v2 !=0)) > 0) stop("have not assigned all coastline segments")
+if(length(which(v1-v2 !=0)) > 0){
+ print(cbind(v1,v2,v2-v1))
+ stop("have not assigned all coastline segments")
+}
 
 # initialize the coastline
 nCoast     <- length(coastConnect$segId)
 ixCurrent  <- which.min(coastConnect$segId)  # initialize the coastline segment (gotta start somehwere)
-#coastOrder <- coastConnect[ixCurrent,]       # get the first row
-coastOrder$index[1] <- ixCurrent
+coastConnect$index[1] <- ixCurrent
 
 # loop through the coastline segments
 for (iNavigate in 2:nCoast){  # nCoast-1 because don't want to duplicate the first segment
@@ -37,11 +39,18 @@ for (iNavigate in 2:nCoast){  # nCoast-1 because don't want to duplicate the fir
 
  # get the next segment
  ixCurrent  <- ixNext
- coastOrder$index[iNavigate] <- ixCurrent
-
- #coastOrder <- rbind(coastOrder, coastConnect[ixCurrent,])
+ coastConnect$index[iNavigate] <- ixCurrent
 
 } # looping through the coastline segments
 
+# get the line segments in order
+# NOTE: use reverse order since toCoast is going "downstream"
+coastOrder <- coastConnect[rev(coastConnect$index),]
+
+# re-define the index
+row.names(coastOrder) <- NULL  # reset to 1,2,3,...,n
+coastOrder$index <- rownames(coastOrder)
+
+# return
 return(coastOrder)
 }

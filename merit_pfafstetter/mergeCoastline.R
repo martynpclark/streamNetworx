@@ -1,5 +1,6 @@
 library(sf)
 library(dplyr)
+library(units)
 library(tictoc)
 source("extractPoint.R")
 source("identifyLinkage.R")
@@ -20,6 +21,12 @@ no  <- 0
 # define the desire for verbose timing information
 desireVerboseTiming <- no
 
+# check that there are actually segments to merge
+if(length(lCoast$FID) == 1) return(coastSplit)
+
+# define the distance threshold
+distClose  <- set_units(1, m)   # 1 m
+
 # initialize the start index
 startIndex <- ix0
 
@@ -37,7 +44,8 @@ point0 <- extractPoint(lCoast %>% select(coastId), c(0))  # get the first point
 point1 <- extractPoint(lCoast %>% select(coastId), c(1))  # get the last point
 
 # loop through features within a landmass
-for (iFeature in 1:length(lCoast$FID)){
+# NOTE: -1 because do not merge longest coastline
+for (iFeature in 1:(length(lCoast$FID)-1)){
 
  # timing for features
  info <- paste("merging feature", iFeature, "of length", floor(st_length(lCoast[iFeature,])), sep=" ")
@@ -46,72 +54,99 @@ for (iFeature in 1:length(lCoast$FID)){
  # get the ranked index
  jFeature <- coastOrder$index[iFeature]
 
- # get the set of nearest segments
+ # get the set of nearest segments (a given coastId)
  ixValid   <- subset(lCoast$index, lCoast$index != jFeature) # ignore segment jFeature
  ixNearest <- ixValid[st_nearest_feature(point0[jFeature,], lCoast[ixValid,])]
  coastMask <- subset(coastConnect$index, coastConnect$coastId == lCoast$coastId[ixNearest])
 
+ # get the nearest segments in the segment set
+ ixClose   <- which(st_distance(point0[jFeature,], coastConnect[coastMask,]) < distClose)
+
+ # there can be two connected segments: identify the segment that is connected "to" the other segment
+ iyClose   <- rep(-9999L, length(ixClose))
+ if(length(ixClose) > 1){
+  for (iTry in 1:length(ixClose)){
+   iyTemp  <- which(coastConnect$toCoast[coastMask[ixClose]] == coastConnect$segId[coastMask[ixClose[iTry]]])
+   if(length(iyTemp) > 0) iyClose[iTry] <- iyTemp
+  } # looping through the connected segments
+  izClose <- which(iyClose != -9999L)
+  if(length(izClose) !=1) stop("cannot find the unique segment")
+  iyNearest <- ixClose[izClose]
+
+ } else { # if >1 close segments
+  iyNearest <- ixClose
+ }        # if just one close segments
+ if(length(iyNearest) == 0) stop("cannot find the nearest segment")
+
  # split the nearest segment in the segment set
- iyNearest <- st_nearest_feature(point0[jFeature,], coastConnect[coastMask,])
- line      <- coastConnect[coastMask[iyNearest],]   # the nearest segment in the segment set
+ line      <- coastConnect[coastMask[iyNearest],]   # the closest segment in the segment set
  point     <- point0[jFeature,]                     # the staring point in the desired feature
  if(!st_intersects(line, point, sparse=FALSE)) next # check that the point intersects the line
  split     <- st_collection_extract(st_split(line$geometry,point$geometry), "LINESTRING")     # new line string
  split     <- st_sf(geometry=split)                 # convert to a spatial data frame
- if(length(rownames(split)) != 2) stop("expect split=2")
+ nSplit    <- length(rownames(split))               # number of splits
+ if(nSplit > 2) stop("expect split<=2")             # check (NOTE: nSplit=1 if the new segment is at the start/end of the orig segment)
 
  # get the mask for the new segments
  insertMask <- subset(coastConnect$index, coastConnect$coastId == lCoast$coastId[jFeature])
+ ixLine     <- coastMask[iyNearest]  # index of the original segment
 
  # update the network topology
  #   to coast
  #        <-- ----------- ----------- -----------
  #            1st segment new segment 2nd segment
 
- # get the new line segments
- ixLine   <- coastMask[iyNearest]
+ # get the 1st newLine segment
  newLine1 <- st_sf(cbind(st_drop_geometry(coastConnect[ixLine,]), split[1,]$geometry))
- newLine2 <- st_sf(cbind(st_drop_geometry(coastConnect[ixLine,]), split[2,]$geometry))
-
- # check if there are multiple segments to merge
- if(length(insertMask) > 1){
-
-  # identify the first segment in the new section
+ if(length(insertMask) > 1){  # multiple segments to merge
   pTest   <- extractPoint(newLine1 %>% select(segId), c(1)) # last point in the 1st newline
   pStart  <- extractPoint(coastConnect[insertMask,] %>% select(segId), c(0))  # vector of starting points
   isFirst <- st_intersects(pStart, pTest, sparse=FALSE)
   if(sum(isFirst) != 1) stop(" cannot identify the first segment in the new section")
   ixFirst <- which(isFirst)
-
-  # identify the last segment in the new section
-  pTest   <- extractPoint(newLine2 %>% select(segId), c(0)) # first point in the 2nd newline
-  pEnd    <- extractPoint(coastConnect[insertMask,] %>% select(segId), c(1))  # vector of ending points
-  isLast  <- st_intersects(pEnd, pTest, sparse=FALSE)
-  if(sum(isLast) != 1) stop(" cannot identify the last segment in the new section")
-  ixLast  <- which(isLast)
-
- # a single segment to merge
- } else {
+ } else { # a single segment to merge
   ixFirst <- 1
-  ixLast  <- 1
  } # if multiple segments to merge
 
  # get the new line segment: connect the start of the segment to newLine1
  coastConnect$toCoast[insertMask[ixFirst]] <- newLine1$segId
  newSegment <- coastConnect$segId[insertMask[ixFirst]]
 
- # get the 2nd line segment: connect newLine2 to the end of the new segmeent
- newLine2$segId   <- id + as.integer(startIndex)
- newLine2$toCoast <- coastConnect$segId[insertMask[ixLast]]
- startIndex       <- startIndex+1L
+ # check that there are two splits
+ if(nSplit==2){ # nSplit=1 if the new segment is at the start/end of the orig segment
 
- # remove original rows
- removeRows   <- coastConnect$segId == newLine1$segId
- coastConnect <- subset(coastConnect, !removeRows)
+  # get the 2nd newLine segment
+  newLine2 <- st_sf(cbind(st_drop_geometry(coastConnect[ixLine,]), split[2,]$geometry))
+  if(length(insertMask) > 1){
+   pTest   <- extractPoint(newLine2 %>% select(segId), c(0)) # first point in the 2nd newline
+   pEnd    <- extractPoint(coastConnect[insertMask,] %>% select(segId), c(1))  # vector of ending points
+   isLast  <- st_intersects(pEnd, pTest, sparse=FALSE)
+   if(sum(isLast) != 1) stop(" cannot identify the last segment in the new section")
+   ixLast  <- which(isLast)
+  } else { # a single segment to merge
+   ixLast  <- 1
+  } # if multiple segments to merge
 
- # merge line segments
- coastConnect        <- rbind(coastConnect, newLine1, newLine2)
- coastConnect$index  <- as.integer(seq(1L,length(coastConnect$segId),1L))
+  # get the 2nd line segment: connect newLine2 to the end of the new segmeent
+  newLine2$segId   <- id + as.integer(startIndex)
+  newLine2$toCoast <- coastConnect$segId[insertMask[ixLast]]
+  startIndex       <- startIndex+1L
+
+  # merge line segments
+  removeRows   <- coastConnect$segId == newLine1$segId
+  coastConnect <- subset(coastConnect, !removeRows)
+  coastConnect <- rbind(coastConnect, newLine1, newLine2)
+
+  # update the coastConnect index
+  coastConnect$index  <- as.integer(seq(1L,length(coastConnect$segId),1L))
+
+  # save the ID for the second newLine
+  newLine2id <- newLine2$segId
+
+ # no need for any splitting if there is just one new line
+ } else { # if(nSplit==2)
+  newLine2id <--9999L
+ } # nSplit=1
 
  # update the toCoast ID for the segment that connects to newLine2
  # |---------| |---------| |---------| |------------|
@@ -125,17 +160,18 @@ for (iFeature in 1:length(lCoast$FID)){
  if(length(ixMatch)>1){  # must be >1 match because include the new segment and the second segment
 
   # identify the target segment
-  jxMatch    <- which(coastConnect$segId[ixMatch] != newSegment & coastConnect$segId[ixMatch] != newLine2$segId)
+  jxMatch    <- which(coastConnect$segId[ixMatch] != newSegment & coastConnect$segId[ixMatch] != newLine2id)
   kxMatch    <- ixMatch[jxMatch]
   if(length(jxMatch) != 1) stop("no unique target segment")
 
   # update linkage
-  coastConnect$toCoast[kxMatch] <- newLine2$segId
+  if(nSplit==2){
+   coastConnect$toCoast[kxMatch] <- newLine2id
+  } else {
+   coastConnect$toCoast[kxMatch] <- newSegment
+  } # nSplit=1
 
  } # if there is a match
-
- # check
- #if(iFeature==94) break
 
  # print timing for features
  if(desireVerboseTiming == yes) toc()
