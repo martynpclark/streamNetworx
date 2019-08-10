@@ -21,6 +21,7 @@ v1   <- coastConnect$segId[rankVec$segId]
 v2   <- coastConnect$toCoast[rankVec$toCoast]
 if(length(which(v1-v2 !=0)) > 0){
  print(cbind(v1,v2,v2-v1))
+ write.table(cbind(v1,v2,v2-v1),'test/coastOrder.txt')
  stop("have not assigned all coastline segments")
 }
 

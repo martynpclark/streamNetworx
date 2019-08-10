@@ -8,6 +8,7 @@ source("lonlat2UTM.R")
 source("extractPoint.R")
 source("disaggLandmask.R")
 source("getRegionLandmasses.R")
+source("getRegionCoastline.R")
 source("splitCoastline.R")
 source("mergeCoastline.R")
 source("orderCoastline.R")
@@ -23,6 +24,9 @@ wgs84_proj <- 4326
 
 # get area tolerance
 areaThreshold <- set_units(25e6, m^2)   # 25 km2
+
+# define the tolerance for coastal proximity
+closeTol  <- set_units(1000, m)   # 1000 m
 
 # define paths 
 merit_path  <- "/Users/mac414/geospatial_data/MERIT-hydro/"
@@ -50,7 +54,7 @@ landmassGlobal <- disaggLandmask(landmaskNames)
 #########################
 # loop through regions...
 #########################
-for (region in 21:99){
+for (region in 16:99){
 
  # define the output shapefiles
  testRiver_shp   <- paste(output_path, "testRiver",        region, ".shp", sep="")
@@ -68,15 +72,9 @@ for (region in 21:99){
                 "8"=3408,  # northern Canada: NSIDC EASE GRID equal area Northern Hemisphere
                  6933)     # default:         NSIDC EASE GRID global (not valid north of 84 deg N)
 
- # define region
- river_id      <- paste("riv_pfaf", region, sep="_")
- hillslope_id  <- paste("hillslope", region, sep="_")
-
  # define the rivers
+ river_id      <- paste("riv_pfaf", region, sep="_")
  river_shp     <- paste(merit_path, "pfaf_level_02/", river_id, "_MERIT_Hydro_v07_Basins_v01_bugfix1.shp", sep="")
-
- # define coastal hillslopes
- hillslope_shp <- paste(merit_path, "coastal_hillslopes/", hillslope_id, "_clean.shp", sep="")
 
  # check that the file exists 
  if (!file.exists(river_shp)) next
@@ -86,11 +84,6 @@ for (region in 21:99){
  rivers <- read_sf(river_shp)
  toc()  # print timing
  
- # read coastal hillslope shape file
- tic("reading coastal hillslopes")
- hillslope <- read_sf(hillslope_shp)
- toc()  # print timing
-
  #stop("testing")
 
  # -----
@@ -103,8 +96,8 @@ for (region in 21:99){
                              regionCoastline_shp   = paste(merit_path, "landmask/coastline_", region, ".shp", sep=""),
                              regionCoastPoints_shp = paste(merit_path, "landmask/coastlinePoints_", region, ".shp", sep="")))
 
- # get regional landmasses
- regionLandmasses <- getRegionLandmasses(landmassGlobal, st_bbox(rivers), proj, landmaskNames$regionLandPoly_shp)
+ # get the regional landmasses
+ regionLandmasses <- getRegionLandmasses(landmassGlobal, st_bbox(rivers), proj, 1.0)  # 1.0 deg buffer
 
  # convert the regional landmasses to a LINESTRING
  landTemp  <- regionLandmasses %>% group_by(FID) %>% summarize(do_union = FALSE) %>% st_cast("POLYGON")
@@ -112,7 +105,7 @@ for (region in 21:99){
  coastline <- coastTemp        %>% group_by(FID) %>% summarize(do_union = FALSE) %>% st_cast("LINESTRING")
  coastline <- cbind(coastId=rownames(coastline), coastline)
  write_sf(coastline, landmaskNames$regionCoastline_shp)
- 
+
  # convert the coastline to multiple points
  coastpoints <- coastline %>% st_cast("MULTIPOINT")
  write_sf(coastpoints, landmaskNames$regionCoastPoints_shp)
@@ -136,14 +129,13 @@ for (region in 21:99){
  # transform coordinates
  tic("transforming coordinates")
  rivers    <- st_transform(rivers, proj)
- hillslope <- st_transform(hillslope, proj)
  toc()  # print timing
 
  # define the desire for temporary output files
- desireTempOutput <- yes
+ desireTempOutput <- no
  
  # define the desire for verbose timing information
- desireVerboseTiming <- yes
+ desireVerboseTiming <- no
  
  tic("get the subset of dangling reaches")
  dangling <- subset(rivers, NextDownID==0) %>% st_transform(proj)
@@ -230,16 +222,6 @@ for (region in 21:99){
   write_sf(coastMerge, tempOutput_test2)
   if(desireVerboseTiming == yes) toc()
 
-  # special case of the Balearic Islands (Majorca)
-  #  * there are only two coastline segments
-  if(region==21 & id==9){
-   print("Balearic Islands (Majorca)")
-   for (iCheck in 1:length(coastMerge$segId)){
-    if(coastMerge$segId[iCheck]==210092341) coastMerge$toCoast[iCheck]=210092342
-    if(coastMerge$segId[iCheck]==210092342) coastMerge$toCoast[iCheck]=210092315
-   } # looping through coastline segments
-  } # special case of the Balearic Islands
-
   info <- "order coastline segments"
   if(desireVerboseTiming == yes) tic(info)
   coastOrder <- orderCoastline(coastMerge)
@@ -258,77 +240,40 @@ for (region in 21:99){
   #stop("landmass loop")
  
  } # looping through landmasses
- 
+
+ # skip if there is not a coastal file
+ if(firstIter == yes) next
+
+ # write regional shapefiles
  write_sf(coastConnect, outputCoast_shp)
- stop("finished looping through landmasses")
 
+ # ---------------------------------------------------------------------------------------------------------
+ # ---------------------------------------------------------------------------------------------------------
+ # ---------------------------------------------------------------------------------------------------------
+ # ---------------------------------------------------------------------------------------------------------
+ # ---------------------------------------------------------------------------------------------------------
 
+ # get river-coast connections
+ info <- "get the connections between outlets and coastal segments"
+ tic(info)
 
+ # extract the ending points from each coastal segment
+ coastPoint   <- extractPoint(coastConnect %>% select(segId), c(1))  # ending point in each line 
 
+ # define the connections between rivers and coasts
+ connectPath  <- st_nearest_points(outlets, st_sf(st_combine(coastPoint)))  # combine into multipoint
+ connectPath  <- cbind(COMID=outlets$COMID, st_sf(connectPath))
+ riverConnect <- subset(connectPath, st_length(connectPath) < closeTol)
+ if(length(riverConnect$COMID) == 0) next
 
-
-
- # get linestrings for each landmass
- lineConnect <- coastConnect %>% group_by(FID) %>% summarize(do_union = FALSE) %>% st_cast("MULTILINESTRING")
-
- # compute the distance to the nearest landmass
- distance <- rep(-9999, length(lineConnect$FID))
- for (feature in 1:length(lineConnect$FID)){
-
-  # get the subset for a given landmass
-  lineLandmass <- subset(coastConnect, coastConnect$FID == coastConnect$FID[feature])
-
-  # identify the longest line
-  ixLongest <- which.max(st_length(lineLandmass))   # index of the longest line
-  longDist  <- st_length(lineLandmass[ixLongest,])  # length of the longest line
-
-  # get indices of all other coastlines
-  ixIndex   <- seq(1,length(lineConnect$FID))
-  ixOther   <- subset(ixIndex, lineConnect$FID != lineConnect$FID[feature])
-  ixClose   <- rep(0,2)
-  isClose   <- TRUE
-
-  # loop through the start and end points
-  for (iPoint in 0:1){  # loop through the start and end points
-   point              <- extractPoint(lineLandmass[ixLongest,] %>% select(segId), c(iPoint))
-   ixClose[iPoint+1]  <- ixOther[st_nearest_feature(point, lineConnect[ixOther,])]
-   if(st_distance(point, lineConnect[ixClose[iPoint+1],]) > closeTol) isClose <- FALSE
-  } # looping through the start and end points
-
-
-
-
-
-  # extract the points from the longest line
-  point0 <- extractPoint(lineLandmass[ixLongest,] %>% select(segId), c(0))  # get the first point in the longest line
-  point1 <- extractPoint(lineLandmass[ixLongest,] %>% select(segId), c(1))  # get the last point in the longest line
-
-  # identify the closest segment
-  ixIndex     <- seq(1,length(lineConnect$FID))
-  ixOther     <- subset(ixIndex, lineConnect$FID != lineConnect$FID[feature])
-  ixNearest   <- ixOther[st_nearest_feature(point0, lineConnect[ixOther,])]
-
-
-
-  ixNearest <- st_nearest_feature(subset(lineConnect, lineConnect$FID != lineConnect$FID[feature]), lineConnect[feature,])
-  print(c(feature, ixNearest))
- } # looping thru features
-
-
-
-
-
-
-
-
- # merge with the outlets
- st_geometry(riverConnect) <- NULL # remove geometry (retain only the data frame)
- riverConnect <- left_join(outlets[ , c("COMID")], riverConnect[ , c("COMID", "toCoast")], by="COMID")
+ # get the coastal ID
+ connectPoint <- extractPoint(riverConnect %>% select(COMID), c(1))  # ending point in each line
+ riverConnect$toCoast <- as.integer(identifyLinkage(connectPoint, coastPoint))
+ toc()  # print timing
  
  # write regional shapefiles
  write_sf(riverConnect, outputRiver_shp)
- write_sf(coastConnect, outputCoast_shp)
 
- stop("region loop")
+ #stop("region loop")
 
 } # looping through regions

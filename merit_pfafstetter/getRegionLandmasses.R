@@ -4,29 +4,19 @@ library(tictoc)
 
 #' getRegionLandmasses
 #' @description Get a subset of landmasses for the region
-getRegionLandmasses <- function(landmassGlobal, boundBox, epsgProj, fname) {
+getRegionLandmasses <- function(landmassGlobal, boundBox, epsgProj, buffer) {
 
 # arguments
 # landmassGlobal = shapfile of global landmasses
 # boundBox       = lat/lon bounding box
 # epsgProj       = desired EPSG proj
-# fname          = name of shapefile for regional landmasses
-
-# logical definitions
-yes <- 1
-no  <- 0
-
-# compute regional subset?
-isRegionSubset <- yes
+# buffer         = buffer (in degrees)
 
 # get area tolerance
 areaThreshold <- set_units(25e6, m^2)   # 25 km2
 
 # define EPSG for WGS84
 wgs84_proj <- 4326
-
-# check if we need to get the regional subset
-if(isRegionSubset == yes){
 
 # -----
 # get regional subset within 1 deg of the input shapefile...
@@ -35,7 +25,7 @@ if(isRegionSubset == yes){
 # get regional landmask
 # NOTE: Use lat-lon coordinates
 tic("get regional landmask")
-mapExtent      <- st_as_sfc(boundBox) %>% st_buffer(1) # use a 1 deg buffer
+mapExtent      <- st_as_sfc(boundBox) %>% st_buffer(buffer)
 landmassRegion <- st_intersection(landmassGlobal, mapExtent) %>% st_transform(epsgProj)
 landmassDesire <- subset(landmassRegion, st_area(landmassRegion) > areaThreshold)
 landmassOrig   <- subset(landmassDesire, !is.na(landmassDesire$OBJECTID))
@@ -90,27 +80,8 @@ landmass$FID <- rownames(landmass)
 # remove all columns EXCEPT for the feature ID and area
 regionLandmasses <- landmass[ , c("FID", "area")]
 
-# write file
-write_sf(regionLandmasses, fname)
-
-# set EPSG (for some reason not written by write_sf)
-system(paste("ogr2ogr -a_srs EPSG:", epsgProj, " ", dirname(fname), "/temp.shp", " ", fname, " 2> temp.log", sep=""))
-system(paste("ogr2ogr ", fname, " ", dirname(fname), "/temp.shp 2> temp.log", sep=""))
-
 # print timing
 toc()
-
-# -----
-# don't need to compute; just read the file... 
-# --------------------------------------------
-
-# read from file
-} else {
-tic("reading regional landmasses")
-regionLandmasses <- read_sf(fname)
-regionLandmasses$area <- set_units(regionLandmasses$area, m^2)
-toc()
-}
 
 return(regionLandmasses)
 }

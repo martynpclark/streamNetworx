@@ -35,9 +35,10 @@ coastConnect        <- coastSplit
 coastConnect$index  <- as.integer(seq(1L,length(coastConnect$segId),1L))
 
 # order coastline segments w.r.t. length
-lCoast$length <- st_length(lCoast)
-lCoast$index  <- seq(1,length(lCoast$coastId),1)
-coastOrder    <- st_drop_geometry(lCoast[order(lCoast$length),])
+lCoast$isValid <- rep(TRUE,length(lCoast$coastId))
+lCoast$length  <- st_length(lCoast)
+lCoast$index   <- seq(1,length(lCoast$coastId),1)
+coastOrder     <- st_drop_geometry(lCoast[order(lCoast$length),])
 
 # extract first and last points in the line
 point0 <- extractPoint(lCoast %>% select(coastId), c(0))  # get the first point
@@ -54,33 +55,38 @@ for (iFeature in 1:(length(lCoast$FID)-1)){
  # get the ranked index
  jFeature <- coastOrder$index[iFeature]
 
- # get the set of nearest segments (a given coastId)
+ # get the starting points for the set of nearest segments (a given coastId)
  ixValid   <- subset(lCoast$index, lCoast$index != jFeature) # ignore segment jFeature
  ixNearest <- ixValid[st_nearest_feature(point0[jFeature,], lCoast[ixValid,])]
  coastMask <- subset(coastConnect$index, coastConnect$coastId == lCoast$coastId[ixNearest])
 
- # get the nearest segments in the segment set
+ # get the nearest coastal segment in the segment set
  ixClose   <- which(st_distance(point0[jFeature,], coastConnect[coastMask,]) < distClose)
 
- # there can be two connected segments: identify the segment that is connected "to" the other segment
- iyClose   <- rep(-9999L, length(ixClose))
- if(length(ixClose) > 1){
-  for (iTry in 1:length(ixClose)){
-   iyTemp  <- which(coastConnect$toCoast[coastMask[ixClose]] == coastConnect$segId[coastMask[ixClose[iTry]]])
-   if(length(iyTemp) > 0) iyClose[iTry] <- iyTemp
-  } # looping through the connected segments
-  izClose <- which(iyClose != -9999L)
-  if(length(izClose) !=1) stop("cannot find the unique segment")
-  iyNearest <- ixClose[izClose]
+ # remove isolated segments
+ if(length(ixClose) == 0){
+  lCoast$isValid[jFeature] <- FALSE
+  next # don't merge isolated segments
+ } # if removing isolated segments
 
+ # there can be two connected segments if the self-interection is located at a segment junction:
+ #  -- identify the segment where the end point is next to the intersection
+ if(length(ixClose) > 1){
+  coastPoint <- extractPoint(coastConnect[coastMask[ixClose],] %>% select(coastId), c(1))  # get the last point
+  iyClose    <- which(st_distance(point0[jFeature,], coastPoint) < distClose)
+  if(length(iyClose) !=1) stop("cannot find the unique segment")
+  iyNearest <- ixClose[iyClose]
+ 
+ # standard case of one segment (self intersection in the middle of a segment)
  } else { # if >1 close segments
   iyNearest <- ixClose
  }        # if just one close segments
- if(length(iyNearest) == 0) stop("cannot find the nearest segment")
 
- # split the nearest segment in the segment set
+ # extract the point and the line
  line      <- coastConnect[coastMask[iyNearest],]   # the closest segment in the segment set
  point     <- point0[jFeature,]                     # the staring point in the desired feature
+
+ # split the nearest segment in the segment set
  if(!st_intersects(line, point, sparse=FALSE)) next # check that the point intersects the line
  split     <- st_collection_extract(st_split(line$geometry,point$geometry), "LINESTRING")     # new line string
  split     <- st_sf(geometry=split)                 # convert to a spatial data frame
@@ -101,7 +107,7 @@ for (iFeature in 1:(length(lCoast$FID)-1)){
  if(length(insertMask) > 1){  # multiple segments to merge
   pTest   <- extractPoint(newLine1 %>% select(segId), c(1)) # last point in the 1st newline
   pStart  <- extractPoint(coastConnect[insertMask,] %>% select(segId), c(0))  # vector of starting points
-  isFirst <- st_intersects(pStart, pTest, sparse=FALSE)
+  isFirst <- st_distance(pTest, pStart) < distClose
   if(sum(isFirst) != 1) stop(" cannot identify the first segment in the new section")
   ixFirst <- which(isFirst)
  } else { # a single segment to merge
@@ -112,7 +118,7 @@ for (iFeature in 1:(length(lCoast$FID)-1)){
  coastConnect$toCoast[insertMask[ixFirst]] <- newLine1$segId
  newSegment <- coastConnect$segId[insertMask[ixFirst]]
 
- # check that there are two splits
+ # check if there are two splits
  if(nSplit==2){ # nSplit=1 if the new segment is at the start/end of the orig segment
 
   # get the 2nd newLine segment
@@ -168,7 +174,11 @@ for (iFeature in 1:(length(lCoast$FID)-1)){
   if(nSplit==2){
    coastConnect$toCoast[kxMatch] <- newLine2id
   } else {
-   coastConnect$toCoast[kxMatch] <- newSegment
+   pEnd    <- extractPoint(coastConnect[insertMask,] %>% select(segId), c(1))  # vector of ending points
+   isLast  <- st_intersects(pEnd, coastConnect[kxMatch,], sparse=FALSE)
+   if(sum(isLast) != 1) stop(" cannot identify the last segment in the new section")
+   ixLast  <- which(isLast)
+   coastConnect$toCoast[kxMatch] <- coastConnect$segId[insertMask[ixLast]]
   } # nSplit=1
 
  } # if there is a match
@@ -177,6 +187,18 @@ for (iFeature in 1:(length(lCoast$FID)-1)){
  if(desireVerboseTiming == yes) toc()
 
 } # loop through features within a landmass
+
+# restrict attention to valid coastline segments
+isCoastValid  <- rep(TRUE,length(coastConnect$coastId))
+for (iCoast in 1:(length(lCoast$FID))){
+ if(!lCoast$isValid[iCoast]){
+  ixRemove <- which(coastConnect$coastId == lCoast$coastId[iCoast])
+  isCoastValid[ixRemove] <- FALSE
+ } # if coastline is invalid
+} # looping through coastline segments
+
+# get the valid subset
+coastConnect <- subset(coastConnect, isCoastValid)
 
 return(coastConnect)
 }
