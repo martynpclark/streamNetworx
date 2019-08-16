@@ -59,6 +59,7 @@ for (feature in 1:length(lCoast$FID)){
  info <- "restrict attention to outlets that are close to the coast"
  if(desireVerboseTiming == yes) tic(info)
  isDesired <- outlets$coastId == lCoast$coastId[feature]
+ isDesired[is.na(isDesired)] <- FALSE
  if(sum(isDesired) > 0){ # if outlets intersect the coastal feature
   isCoastal <- st_distance(subset(outlets,isDesired), lCoast[feature,]) < closeTol
   isDesired[isDesired] <- isCoastal  # update desired outlets

@@ -54,7 +54,7 @@ landmassGlobal <- disaggLandmask(landmaskNames)
 #########################
 # loop through regions...
 #########################
-for (region in 16:99){
+for (region in 21:29){
 
  # define the output shapefiles
  testRiver_shp   <- paste(output_path, "testRiver",        region, ".shp", sep="")
@@ -105,6 +105,7 @@ for (region in 16:99){
  coastline <- coastTemp        %>% group_by(FID) %>% summarize(do_union = FALSE) %>% st_cast("LINESTRING")
  coastline <- cbind(coastId=rownames(coastline), coastline)
  write_sf(coastline, landmaskNames$regionCoastline_shp)
+ nFeature  <- length(coastline$coastId)
 
  # convert the coastline to multiple points
  coastpoints <- coastline %>% st_cast("MULTIPOINT")
@@ -155,14 +156,21 @@ for (region in 16:99){
  outlet_FID       <- coastline$FID[nearestCoastline] 
  outlet_coastId   <- coastline$coastId[nearestCoastline]
  outlet_isCoastal <- rep(0L, length(outlets$COMID))
- outlets <- cbind(FID=outlet_FID, coastId=outlet_coastId, isCoastal=outlet_isCoastal, outlets)
+ outlets <- cbind(FID=outlet_FID, coastId=outlet_coastId, isCoastal=outlet_isCoastal, uparea=dangling$uparea, outlets)
+
+ # remove mis-assigned outlets
+ badList <- c(24001412L)
+ for (iBad in 1:length(badList)){
+  ixMatch <- which(outlets$COMID == badList[iBad])
+  if(length(ixMatch) == 1) outlets$coastId[ixMatch] <- NA
+ }  # looping through bad list
 
  # check that there is enough room for the ID in a 32-bit integer
  nOutlets  <- length(outlets$COMID)
  nLandmass <- sum(regionLandmasses$area > areaThreshold)
 
  # get the multiplier for the continent ID
- idMultOutlet   <- 10L^(nchar(nOutlets))
+ idMultOutlet   <- 10L^(nchar(nOutlets+nFeature))  # features are split at each outlet
  idMultLandmass <- 10L^(nchar(nLandmass)) * idMultOutlet
 
  # check that we have not exceeded the carrying capacity of an integer
@@ -172,6 +180,8 @@ for (region in 16:99){
  # initialize the first iteration of the loop
  firstIter  <- yes
  startIndex <- 1L
+
+ #stop("testing")
 
  # ---------------------------------------------------------------------------------------------------------
  # ---------------------------------------------------------------------------------------------------------
@@ -228,6 +238,9 @@ for (region in 16:99){
   write_sf(coastOrder, tempOutput_test3)
   if(desireVerboseTiming == yes) toc()
 
+  # include the landmass ID
+  coastOrder <- cbind(idLandmass=rep(as.integer(id), length(coastOrder$segId)), coastOrder)
+
   # concatenate the coastal segments
   if(firstIter==yes) coastConnect <- coastOrder
   if(firstIter==no)  coastConnect <- rbind(coastConnect, coastOrder)
@@ -262,7 +275,7 @@ for (region in 16:99){
 
  # define the connections between rivers and coasts
  connectPath  <- st_nearest_points(outlets, st_sf(st_combine(coastPoint)))  # combine into multipoint
- connectPath  <- cbind(COMID=outlets$COMID, st_sf(connectPath))
+ connectPath  <- cbind(COMID=outlets$COMID, uparea=dangling$uparea, st_sf(connectPath))
  riverConnect <- subset(connectPath, st_length(connectPath) < closeTol)
  if(length(riverConnect$COMID) == 0) next
 
