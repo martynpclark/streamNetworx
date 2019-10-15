@@ -6,7 +6,7 @@ library(ncdf4)
 #################
 
 # define regional subset
-subset <- "pfaf_71"
+subset <- "pfaf_45"
 
 # define path to the hydrography
 base_path <- "/Users/mac414/geospatial_data/MERIT-hydro/"
