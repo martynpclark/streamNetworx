@@ -22,6 +22,7 @@ is2dGrid <- (gridIndices$i_grid[1] > 0 & gridIndices$j_grid[1] > 0)
 
 # remove the NetCDF file -- R does not seem to have a "clobber" option
 system(paste("rm -f",output_ncdf))
+print(output_ncdf)
 
 # define dimensions
 polygon_dim <- ncdim_def("polyid",    "", runLength$values)

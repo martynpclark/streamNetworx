@@ -16,11 +16,14 @@ no  <- 0
 hydroDataset <- "merit"
 
 # define subregion
-merit_sub  <- "cat_pfaf_17"   # Saskatchewan-Nelson
-subsetName <- "nile"
+merit_sub  <- "cat_pfaf_45"   # South Asia
+subsetName <- "southAsia"
+
+# define EPSG for WGS84
+proj_wgs84  <- 4326
 
 # define projection
-proj <- 102022  # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
+proj <- 6933  # NOTE: 6933 is equal area for the globe. Need to change for other regions.
 #proj <- 3408    # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
 
 # define the variable names for the hydrography dataset
@@ -71,7 +74,6 @@ grid2basin_nc  <- paste(outputPath, file_path_sans_ext(basename(basin_shp)), ".n
 # ----------------------------------------------------------
 
 tic("read the basin shapefiles")
-proj_wgs84  <- 4326
 basins_orig <- read_sf(basin_shp) %>% st_set_crs(proj_wgs84)
 toc()  # print timing
 

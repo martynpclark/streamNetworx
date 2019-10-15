@@ -15,6 +15,9 @@ tif_sub <- gridNames$tif_sub  # geotif of domain subset
 shporig <- gridNames$shporig  # shapefile of domain subset (in projection EPSG:4326)
 shpproj <- gridNames$shpproj  # reprojected shapefile of domain subset (in projection proj)
 
+# check that the grid exists
+if(!file.exists(grid_nc)) stop(paste(grid_nc, "does not exist"))
+
 # ensure bounding box is 0-360
 if(bbox[1]*bbox[3] < 0) stop("cannot handle case where the domain crosses Grenwich")
 if(bbox[1] < 0) bbox[1]=bbox[1]+360
@@ -38,7 +41,7 @@ system(paste("gdal_translate -projwin", spatialSubset, "-of GTiff", tifproj, tif
 # polygonize the .tif
 tic("created the grid shapefile")
 system(paste("rm -f",shporig)) # remove existing shapefile if it exists
-system(paste("gdal_polygonize.py", tif_sub, '-f "ESRI Shapefile"', shporig, file_path_sans_ext(basename(shporig)), "hru_id"))
+system(paste("python3 gdal_polygonize.py", tif_sub, '-f "ESRI Shapefile"', shporig, file_path_sans_ext(basename(shporig)), "hru_id"))
 toc()  # print timing
 
 # read the grid and transform to the desired projection
