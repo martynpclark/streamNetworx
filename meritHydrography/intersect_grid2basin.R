@@ -4,7 +4,9 @@ library(sf)
 library(dplyr)
 library(tictoc)
 library(data.table)
-source("/Users/mac414/analysis/poly2poly_R/area_weighted.R")
+source("/Users/mac414/analysis/streamNetworx/spatialOverlap/area_weighted.R")
+source("/Users/mac414/analysis/streamNetworx/spatialOverlap/makeGridSubset.R")
+source("/Users/mac414/analysis/streamNetworx/spatialOverlap/makeSpatialWeights.R")
 
 # logical definitions
 yes <- 1
@@ -16,6 +18,9 @@ hydroDataset <- "merit"
 # define subregion
 merit_sub  <- "cat_pfaf_71"   # Saskatchewan-Nelson
 subsetName <- "saskatchewan"
+
+# define lat-lon projection
+proj_wgs84 <- 4326 
 
 # define projection
 proj <- 3408  # NOTE: 3408 is equal area Northern Hemisphere. Need to change for other regions.
@@ -36,7 +41,7 @@ grid_path  <- paste(base_path, "MERIT-hydro/globalGrid/cru360x720/", sep="")
 hdma_path  <- paste(base_path, "HDMA/catch/", sep="")
 
 # Define the output path
-outputPath = paste(base_path, "mizuRoute/ancillary_data/mapping/", sep="")
+outputPath <- paste(base_path, "mizuRoute/ancillary_data/mapping/", sep="")
 
 # define shapefiles for the river network
 if(hydroDataset == "merit"){
@@ -68,7 +73,7 @@ grid2basin_nc  <- paste(outputPath, "grid2basin.nc",  sep="")
 # ----------------------------------------------------------
 
 tic("read the basin shapefiles")
-basins_orig <- read_sf(basin_shp)
+basins_orig <- read_sf(basin_shp) %>% st_set_crs(proj_wgs84)
 toc()  # print timing
 
 # get the bounding box from the stream network subset
